@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Il Sabotatore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0c0b; --panel: rgba(26,20,17,.92); --panel-solid: #1d1613; --ink: #f3ebe0; --muted: #b8a993;
+    --accent: #f0559a; --accent2: #d9893b; --ok: #6fbf73; --danger: #e0614f; --line: rgba(243,235,224,.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+  canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hud-tl { position: fixed; top: 12px; left: 12px; width: min(300px, calc(100% - 24px)); z-index: 5; }
+  .taskbar { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+  .taskbar .lbl { display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 6px; }
+  .bar { height: 12px; border-radius: 99px; background: #2b221d; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,.5); }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #57c27a, #9be27a); border-radius: 99px; transition: width .6s cubic-bezier(.2,.9,.3,1.2); }
+  .tasks { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  .tasks li { display: flex; gap: 8px; align-items: center; padding: 2px 0; color: #f3dca0; }
+  .tasks li.done { color: var(--muted); text-decoration: line-through; }
+  .tasks li::before { content: "◇"; color: var(--accent2); }
+  .tasks li.done::before { content: "✔"; color: var(--ok); }
+  .role { margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .hud-tr { position: fixed; top: 12px; right: 12px; display: flex; gap: 8px; z-index: 5; }
+  .iconbtn { width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 18px; cursor: pointer; }
+  .actions { position: fixed; right: 16px; bottom: 16px; display: flex; gap: 10px; z-index: 5; align-items: flex-end; }
+  .act { width: 92px; height: 92px; border-radius: 22px; border: 2px solid var(--line); background: var(--panel); color: var(--ink); font: 700 13px Inter, sans-serif; letter-spacing: .06em; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; opacity: .35; transition: .15s; }
+  .act span { font-size: 30px; line-height: 1; }
+  .act.on { opacity: 1; border-color: var(--accent2); box-shadow: 0 0 22px rgba(217,137,59,.45); }
+  .act.report.on { border-color: var(--danger); box-shadow: 0 0 22px rgba(224,97,79,.55); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { transform: scale(1.06); } }
+  .act kbd { font: 600 10px ui-monospace, monospace; color: var(--muted); }
+  #dpad { position: fixed; left: 16px; bottom: 16px; z-index: 5; display: grid; grid-template-columns: repeat(3, 54px); grid-template-rows: repeat(3, 54px); gap: 4px; }
+  #dpad button { border-radius: 14px; border: 1px solid var(--line); background: rgba(26,20,17,.75); color: var(--ink); font-size: 18px; touch-action: none; }
+  #dpad button:active { background: var(--accent); }
+  #dpad [data-k="u"] { grid-column: 2; grid-row: 1; } #dpad [data-k="l"] { grid-column: 1; grid-row: 2; }
+  #dpad [data-k="d"] { grid-column: 2; grid-row: 3; } #dpad [data-k="r"] { grid-column: 3; grid-row: 2; }
+  .toast { position: fixed; top: 74px; left: 50%; transform: translate(-50%, -10px); background: var(--panel-solid); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; opacity: 0; transition: .3s; z-index: 30; pointer-events: none; text-align: center; max-width: calc(100% - 32px); }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* Finestre */
+  .overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: radial-gradient(ellipse at center, rgba(20,10,6,.5), rgba(5,3,2,.88)); backdrop-filter: blur(5px); }
+  .overlay[hidden] { display: none; }
+  .card { position: relative; width: min(640px, 100%); max-height: calc(100vh - 32px); overflow: auto; border-radius: 22px; padding: 0 0 20px;
+    background: radial-gradient(120% 80% at 0% 0%, rgba(240,85,154,.12), transparent 55%), linear-gradient(180deg, #241a15, #17100c);
+    box-shadow: 0 0 0 1px rgba(217,137,59,.35), 0 30px 80px rgba(0,0,0,.6); animation: cardIn .35s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(.96); } }
+  .card::before { content: ""; display: block; height: 10px; border-radius: 22px 22px 0 0; background: repeating-linear-gradient(135deg, #d9893b 0 8px, #f0559a 8px 16px, #3f8fb0 16px 24px); }
+  .card .in { padding: 18px 24px 0; }
+  .card h1 { font-family: Cinzel, serif; color: var(--accent); margin: 0 0 6px; font-size: 32px; }
+  .card h2 { font-family: Cinzel, serif; margin: 0 0 8px; font-size: 23px; }
+  .kicker { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); font-weight: 600; margin: 0 0 2px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .btn { font: 700 15px Inter, sans-serif; padding: 12px 20px; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  .btn.primary { background: linear-gradient(180deg, #f0a24e, #d9803b); border-color: #d9803b; color: #1a0f06; box-shadow: 0 6px 16px rgba(217,128,59,.35); }
+  .btn.danger { background: linear-gradient(180deg, #ef6f5d, #c9483a); border-color: #c9483a; color: #fff; }
+  .row { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+  .rules div { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+  .rules b { display: block; color: #ffd27a; }
+  @media (max-width: 560px) { .rules { grid-template-columns: 1fr; } .act { width: 78px; height: 78px; } #dpad { grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(3, 46px); } }
+
+  /* Mini-giochi */
+  .task { margin-top: 10px; padding: 16px; border-radius: 16px; background: linear-gradient(160deg, #3a3f47, #23262b); box-shadow: inset 0 2px 0 rgba(255,255,255,.08), 0 10px 26px rgba(0,0,0,.4); }
+  .task .hint { color: #c9cfd6; font-size: 13px; margin: 0 0 10px; }
+  .wires { display: grid; grid-template-columns: 80px 1fr 80px; align-items: center; position: relative; height: 240px; }
+  .wcol { display: flex; flex-direction: column; justify-content: space-around; height: 100%; }
+  .wire { height: 26px; border-radius: 6px; border: 2px solid #111; cursor: pointer; box-shadow: inset 0 3px 0 rgba(255,255,255,.3); }
+  .wire.sel { outline: 3px solid #fff; }
+  .wire.ok { opacity: .55; cursor: default; }
+  .wires svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .tubes, .books { display: flex; gap: 12px; justify-content: center; align-items: flex-end; min-height: 170px; }
+  .tube { width: 46px; height: 150px; border-radius: 0 0 23px 23px; border: 3px solid #cfd8dc; border-top: 0; background: rgba(255,255,255,.06); cursor: pointer; position: relative; overflow: hidden; transition: transform .15s; }
+  .tube::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 62%; border-radius: 0 0 18px 18px; background: var(--c); }
+  .tube.used { transform: translateY(8px); opacity: .45; }
+  .legend { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+  .legend span { padding: 4px 8px; border-radius: 6px; font: 700 12px Inter; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  .book { width: 52px; border-radius: 4px 4px 2px 2px; cursor: pointer; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; font: 700 14px ui-monospace, monospace; color: #fff; box-shadow: inset -6px 0 0 rgba(0,0,0,.2), 0 4px 8px rgba(0,0,0,.4); transition: transform .15s; }
+  .book.used { transform: translateY(-14px); opacity: .5; }
+  .meterwrap { position: relative; height: 44px; border-radius: 12px; background: #15181c; overflow: hidden; box-shadow: inset 0 3px 8px rgba(0,0,0,.6); }
+  .zone { position: absolute; top: 0; bottom: 0; background: rgba(111,191,115,.45); border-left: 2px solid #6fbf73; border-right: 2px solid #6fbf73; }
+  .cursor { position: absolute; top: -4px; bottom: -4px; width: 6px; margin-left: -3px; background: #fff; border-radius: 3px; box-shadow: 0 0 12px #fff; }
+  .dots { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  .dots i { width: 16px; height: 16px; border-radius: 50%; background: #2b2f35; border: 2px solid #555; }
+  .dots i.on { background: #6fbf73; border-color: #b8f5c0; box-shadow: 0 0 10px #6fbf73; }
+  .ball { width: 120px; height: 120px; margin: 0 auto 12px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffd9a0, #e2832b 60%, #9a4b16); transform: scale(var(--s, .4)); transition: transform .05s; box-shadow: 0 8px 20px rgba(0,0,0,.5); position: relative; }
+  .ball::before, .ball::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(60,20,0,.55); clip-path: inset(0 48% 0 48%); }
+  .ball::after { clip-path: inset(48% 0 48% 0); }
+  .vgauge { height: 18px; border-radius: 9px; background: #15181c; position: relative; overflow: hidden; }
+  .vgauge i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #4d9dff, #ffd84d, #ff5a5f); }
+  .vgauge .zone { background: rgba(111,191,115,.35); }
+  .pixrow { display: flex; gap: 24px; justify-content: center; align-items: center; }
+  .pgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: #0b1a10; padding: 10px; border-radius: 10px; }
+  .pgrid i { width: 40px; height: 40px; border-radius: 5px; background: #10251a; border: 1px solid #1d3a26; cursor: pointer; }
+  .pgrid.small i { width: 16px; height: 16px; cursor: default; }
+  .pgrid i.on { background: #6dff9c; box-shadow: 0 0 8px #6dff9c; }
+  .badge { text-align: center; }
+  .badge .code { font: 700 36px ui-monospace, monospace; letter-spacing: .3em; color: #7dffb0; background: #0d1210; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+  .keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 360px; margin: 0 auto; }
+  .keys button { height: 50px; border-radius: 12px; border: 0; font: 700 20px Inter; color: #eef1f4; background: linear-gradient(180deg, #6a707a, #4b5058); box-shadow: 0 4px 0 #2b2e33; cursor: pointer; }
+  .keys button:active { transform: translateY(3px); box-shadow: 0 1px 0 #2b2e33; }
+  .shake { animation: shake .4s; }
+  @keyframes shake { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+  .taskdone { text-align: center; font: 700 22px Inter; color: #9be27a; padding: 30px 0; animation: cardIn .4s; }
+
+  /* Riunione */
+  .meeting .headline { background: rgba(224,97,79,.14); border: 1px solid rgba(224,97,79,.45); color: #ffb0a3; border-radius: 12px; padding: 10px 12px; margin: 8px 0 12px; font-weight: 600; }
+  .chat { display: flex; flex-direction: column; gap: 8px; max-height: 34vh; overflow: auto; padding-right: 4px; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; animation: cardIn .35s both; }
+  .msg canvas { flex: none; width: 40px; height: 40px; }
+  .msg .b { background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 4px 14px 14px 14px; padding: 7px 11px; font-size: 14px; }
+  .msg .b .who { display: block; font-size: 12px; }
+  .diary { margin-top: 12px; background: rgba(242,193,78,.06); border: 1px dashed rgba(242,193,78,.35); border-radius: 12px; padding: 8px 12px; font-size: 13px; color: #f3dca0; }
+  .diary ul { margin: 4px 0 0; padding-left: 18px; }
+  .voters { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 12px; }
+  .voter { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.03); cursor: pointer; color: var(--ink); font: 600 14px Inter; text-align: left; }
+  .voter canvas { width: 36px; height: 36px; flex: none; }
+  .voter:hover { border-color: var(--accent2); }
+  .voter.dead { opacity: .35; cursor: default; }
+  .voter.me { cursor: default; }
+  .voter .votes { margin-left: auto; display: flex; gap: 2px; }
+  .voter .votes i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+  .voter.chosen { border-color: var(--danger); box-shadow: 0 0 14px rgba(224,97,79,.5); }
+  .eject { text-align: center; padding: 20px 0; }
+  .eject canvas { width: 120px; height: 120px; animation: spinOut 2.2s ease-in forwards; }
+  @keyframes spinOut { 0% { transform: translateX(-160px) rotate(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateX(160px) rotate(720deg); opacity: 0; } }
+  .bigend { text-align: center; }
+  .bigend .emoji { font-size: 64px; }
+  .minimap { display: block; width: 100%; height: auto; border-radius: 12px; background: #120d0b; }
+</style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="hud-tl">
+    <div class="taskbar">
+      <div class="lbl"><span>Attività della scuola</span><span id="pct">0%</span></div>
+      <div class="bar"><i id="barfill"></i></div>
+      <ul class="tasks" id="tasklist"></ul>
+      <div class="role" id="role">Tu sei un robot dell'Othoca. Uno dei robot è il sabotatore!</div>
+    </div>
+  </div>
+  <div class="hud-tr">
+    <button class="iconbtn" id="mapBtn" title="Mappa (M)">🗺️</button>
+    <button class="iconbtn" id="muteBtn" title="Audio">🔊</button>
+    <button class="iconbtn" id="fsBtn" title="Schermo intero">⛶</button>
+  </div>
+  <div class="actions">
+    <button class="act report" id="reportBtn"><span>🚨</span>SEGNALA<kbd>R</kbd></button>
+    <button class="act use" id="useBtn"><span>✋</span>USA<kbd>E</kbd></button>
+  </div>
+  <div id="dpad">
+    <button type="button" data-k="u">▲</button><button type="button" data-k="l">◀</button>
+    <button type="button" data-k="d">▼</button><button type="button" data-k="r">▶</button>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="overlay" id="overlay" hidden><div class="card" id="card"></div></div>
+
+  <script src="sabotatore.js"></script>
+</body>
+</html>
