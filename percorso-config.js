@@ -9,8 +9,10 @@
  *   links: collegamenti reali del tour (yaw = direzione nella foto, dist = distanza stimata in metri)
  *          lock = enigma che apre il passaggio, lockedSay = cosa dice Othy se è chiuso
  *   items: oggetti/indizi (yaw e pitch nella foto)
- *   wall:  distanza media delle pareti (m) per proiettare la foto; box: [mezza larghezza, mezza profondità]
- *          per i corridoi stretti (nel sistema della foto: x = destra/sinistra, z = avanti/indietro)
+ *   room:  distanze (m) dal punto di scatto alle pareti a sinistra, destra, davanti e dietro: la foto viene
+ *          proiettata su una stanza rettangolare, così le pareti restano dritte. Misurate dalla vista dall'alto
+ *          della foto proiettata sul pavimento. roomYaw = rotazione della stanza se è storta rispetto alla foto.
+ *   wall:  (all'aperto) raggio del cilindro su cui si proietta la foto
  */
 window.PERCORSO_3D = true;
 
@@ -94,7 +96,7 @@ GAME.scenes = [
     items: [{ yaw: 0.45, pitch: -0.4, icon: "🏛️", label: "Insegna", puzzle: "targa" }]
   },
   {
-    id: "2-3ingresso-nuovo", name: "Atrio", wall: 5.5,
+    id: "2-3ingresso-nuovo", name: "Atrio", room: { left: 6.2, right: 4.5, front: 7.8, back: 9 },
     say: "Le porte verso il corridoio sono chiuse con un tastierino. Cerchiamo un promemoria qui intorno!",
     links: [
       { target: "1-2ingresso-dentro", yaw: -3.1099 },
@@ -106,7 +108,7 @@ GAME.scenes = [
     ]
   },
   {
-    id: "3-4corridoio-nuovo", name: "Corridoio", wall: 6,
+    id: "3-4corridoio-nuovo", name: "Corridoio", roomYaw: -0.33, room: { left: 12, right: 12, front: 5.5, back: 4.5 },
     say: "Che bel corridoio! Su quella bacheca blu c'è un messaggio strano…",
     links: [
       { target: "2-3ingresso-nuovo", yaw: -2.1257 },
@@ -115,7 +117,7 @@ GAME.scenes = [
     items: [{ yaw: -2.6, pitch: -0.12, icon: "📌", label: "Bacheca blu", puzzle: "cesare" }]
   },
   {
-    id: "4-5andito-nuovo", name: "Andito", wall: 8,
+    id: "4-5andito-nuovo", name: "Andito", room: { left: 11, right: 10, front: 11, back: 9.5 },
     say: "L'andito! Su quella bacheca rossa c'è qualcosa di antico… e la scrivania ha un vecchio monitor.",
     links: [
       { target: "3-4corridoio-nuovo", yaw: 2.9038 },
@@ -127,7 +129,7 @@ GAME.scenes = [
     ]
   },
   {
-    id: "5-6andito-nuovo", name: "Andito delle vetrine", wall: 6,
+    id: "5-6andito-nuovo", name: "Andito delle vetrine", room: { left: 3, right: 6, front: 10, back: 10 },
     say: "Che belle queste vetrine! In una c'è un cartellino scritto con segni strani…",
     links: [
       { target: "4-5andito-nuovo", yaw: 1.6091 },
@@ -136,7 +138,7 @@ GAME.scenes = [
     items: [{ yaw: -0.95, pitch: 0.02, icon: "🏺", label: "Vetrina", puzzle: "tanit" }]
   },
   {
-    id: "6-7corridoio-palazzetto", name: "Corridoio del palazzetto", box: [1.4, 9],
+    id: "6-7corridoio-palazzetto", name: "Corridoio del palazzetto", roomYaw: 0.08, room: { left: 1.1, right: 1.0, front: 12, back: 10 },
     say: "Un corridoio pieno di quadri elettrici… quello grande a destra ha degli interruttori!",
     links: [
       { target: "5-6andito-nuovo", yaw: -3.0367 },
@@ -145,7 +147,7 @@ GAME.scenes = [
     items: [{ yaw: 2.62, pitch: 0.0, icon: "💡", label: "Quadro elettrico", puzzle: "circuito" }]
   },
   {
-    id: "7-8entrata-palazzetto", name: "Entrata del palazzetto", wall: 4,
+    id: "7-8entrata-palazzetto", name: "Entrata del palazzetto", room: { left: 13, right: 13, front: 2, back: 27 },
     say: "Siamo all'entrata del palazzetto! Quel pannello accanto alla porta comanda le luci.",
     links: [
       { target: "6-7corridoio-palazzetto", yaw: 0.6929 },
@@ -154,7 +156,7 @@ GAME.scenes = [
     items: [{ yaw: 0.7, pitch: -0.2, icon: "🎛️", label: "Pannello luci", puzzle: "simon" }]
   },
   {
-    id: "8-9centropalazzetto", name: "Palazzetto", wall: 16,
+    id: "8-9centropalazzetto", name: "Palazzetto", room: { left: 12.5, right: 13, front: 14.5, back: 15 },
     say: "Che spazio enorme! La cassa del sigillo dev'essere qui… guarda sotto il tabellone!",
     links: [{ target: "7-8entrata-palazzetto", yaw: -0.0227 }],
     items: [{ yaw: 1.48, pitch: 0.12, icon: "🧰", label: "Cassa", puzzle: "finale" }]

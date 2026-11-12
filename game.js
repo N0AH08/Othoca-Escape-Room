@@ -5,7 +5,10 @@
   const $ = (sel) => document.querySelector(sel);
   // Modalità 3D: la camminata la gestisce percorso.js, qui restano enigmi, timer, frammenti e Othy
   const MODE3D = !!window.PERCORSO_3D;
-  const SAVE_KEY = MODE3D ? "othoca-percorso-v1" : "othoca-escape-v2";
+  // GAME.saveKey (facoltativo): salvataggio separato per altre versioni (es. laboratorio.html)
+  const SAVE_KEY = GAME.saveKey || (MODE3D ? "othoca-percorso-v1" : "othoca-escape-v2");
+  // GAME.revealAngle (facoltativo, radianti): senza robot, gli oggetti compaiono quando li si guarda
+  const LOOK_REVEAL = MODE3D ? 0 : GAME.revealAngle || 0;
   const EDITOR = new URLSearchParams(location.search).has("editor");
   const TAU = Math.PI * 2;
   const FOV_NORMAL = 1.45;
@@ -173,9 +176,25 @@
           h.el.classList.add("reveal"); setTimeout(() => h.el.classList.remove("reveal"), 900);
         }
         show = near || state.found.includes(id);
+      } else if (LOOK_REVEAL) {
+        // Stanza singola: l'oggetto compare quando è vicino al centro dello sguardo
+        const d = lookDistance(s.view, h.item);
+        const near = d < LOOK_REVEAL && !!state.start && modal.hidden && !busy;
+        if (near && !state.found.includes(id)) {
+          state.found.push(id); save(); sfx.sparkle();
+          h.el.classList.add("reveal"); setTimeout(() => h.el.classList.remove("reveal"), 900);
+        }
+        show = (state.found.includes(id) && d < LOOK_REVEAL * 2.2) || near;
+        h.el.classList.toggle("far", !show && d > LOOK_REVEAL * 1.8);
       }
       h.el.classList.toggle("hidden", !show);
     }
+  }
+  // distanza angolare tra il centro della vista e un oggetto (yaw/pitch)
+  function lookDistance(view, it) {
+    const p1 = view.pitch(), p2 = it.pitch, dy = view.yaw() - it.yaw;
+    const c = Math.sin(p1) * Math.sin(p2) + Math.cos(p1) * Math.cos(p2) * Math.cos(dy);
+    return Math.acos(Math.max(-1, Math.min(1, c)));
   }
   setInterval(updateReveal, 150);
 
@@ -351,7 +370,11 @@
     const sc = current().data;
     const todo = sc.items.find((it) => GAME.puzzles[it.puzzle].type !== "info" && !isSolved(it.puzzle));
     const hidden = sc.items.find((it) => avatar() && !state.found.includes(it.puzzle));
+    if (todo && todo.tip && avatar() && !state.found.includes(todo.puzzle)) return todo.tip; // consiglio dell'oggetto (solo se c'è "tip")
     if (hidden) return `Esplora la stanza con il robot! Gli indizi brillano solo da vicino. Cerca: "${hidden.label}".`;
+    if (LOOK_REVEAL && todo && !state.found.includes(todo.puzzle)) {
+      return todo.tip || `Guardati intorno: trascina la foto o usa le frecce. Gli oggetti compaiono quando li guardi! Cerca: "${todo.label}".`;
+    }
     if (todo) return `Dai un'occhiata a "${todo.label}"! Se sei bloccato, dentro l'enigma puoi chiedere un indizio.`;
     const locked = sc.links.find((l) => l.lock && !isSolved(l.lock));
     if (locked) return locked.lockedSay;
@@ -702,7 +725,7 @@
   }
 
   // ---------- Classifica (salvata su questo computer) ----------
-  const LB_KEY = "othoca-classifica-v1";
+  const LB_KEY = GAME.leaderboardKey || "othoca-classifica-v1";
   function loadLB() { try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; } catch (e) { return []; } }
   function saveLB(a) { try { localStorage.setItem(LB_KEY, JSON.stringify(a)); } catch (e) {} }
   const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
