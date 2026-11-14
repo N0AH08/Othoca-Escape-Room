@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Othoca 3D · Tour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lib/othoca-ui.css">
+<style>
+  #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #markers { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+  #markers > * { position: absolute; pointer-events: auto; }
+  .hs.info .dot { width: 44px; height: 44px; font: italic 700 24px Georgia, serif; color: #fff; background: rgba(41,121,255,.55); border: 2px solid #9fd3ff; box-shadow: 0 0 18px rgba(79,195,247,.7); animation: pulse 2.2s infinite; }
+  .hs.info.inrange .dot { background: rgba(240,85,154,.75); border-color: #ffd0e0; transform: scale(1.12); }
+  .hud .tour-tag { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #9fd3ff; }
+  .iconbtn:disabled { opacity: .35; cursor: default; }
+  #minimap { position: fixed; right: 14px; bottom: 14px; width: 300px; height: 168px; z-index: 6; border-radius: 12px; cursor: pointer;
+    background: rgba(20, 14, 18, .72); border: 1px solid rgba(255,255,255,.18); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+  body.has-avatar #dpad { bottom: 196px; }
+  .overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(10, 6, 9, .55); backdrop-filter: blur(3px); }
+  .overlay[hidden] { display: none; }
+  .panel { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; background: var(--panel-solid, #1d1713); color: var(--ink);
+    border: 1px solid rgba(255,255,255,.14); border-radius: 18px; padding: 22px 24px; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .panel h2 { font-family: Cinzel, serif; margin: 2px 0 10px; color: #f5739f; }
+  .panel .eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #9fd3ff; }
+  .panel p { margin: 0 0 14px; }
+  .panel .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .btn { font: 600 15px Inter, sans-serif; padding: 10px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06); color: var(--ink); cursor: pointer; }
+  .btn.primary { background: #f0559a; border-color: #f0559a; color: #fff; }
+  .btn:hover { filter: brightness(1.1); }
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; margin: 4px 0 12px; }
+  .thumbs button { aspect-ratio: 1; border-radius: 10px; border: 2px solid rgba(255,255,255,.2); background-size: cover; background-position: center; cursor: pointer; }
+  .thumbs button:hover { border-color: #f0559a; }
+  #foto { position: fixed; inset: 0; z-index: 30; background: #000; }
+  #foto[hidden] { display: none; }
+  #pano360 { position: absolute; inset: 0; }
+  #foto .bar { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    background: linear-gradient(rgba(0,0,0,.7), rgba(0,0,0,0)); z-index: 2; }
+  #foto .bar h3 { margin: 0; font-family: Cinzel, serif; color: #f5739f; font-size: 18px; }
+  #foto .bar small { color: #ddd; }
+  #foto .bar .spacer { flex: 1; }
+  #foto .nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(255,255,255,.3);
+    background: rgba(0,0,0,.45); color: #fff; font-size: 24px; cursor: pointer; }
+  #fotoPrev { left: 14px; } #fotoNext { right: 14px; }
+  #foto .credit { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 2; font-size: 12px; color: #ccc; background: rgba(0,0,0,.45); padding: 4px 10px; border-radius: 99px; }
+  #bigmap .panel { width: min(1100px, calc(100vw - 32px)); }
+  #bigmapCanvas { width: 100%; height: min(56vh, 520px); display: block; background: #15100f; border-radius: 12px; cursor: crosshair; }
+  #intro .panel { text-align: center; }
+  #intro img { width: 84px; }
+  #intro kbd { font: 600 12px Inter, sans-serif; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); }
+  @media (max-width: 700px) { #minimap { width: 170px; height: 96px; bottom: auto; top: 64px; right: 8px; } body.has-avatar #dpad { bottom: 20px; } }
+</style>
+</head>
+<body>
+  <div id="splash"><div class="splash-in">
+    <img src="lib/img/logoOthoca.png" alt="Logo Othoca">
+    <h1>La scuola <b>Othoca</b> in 3D</h1>
+    <div class="phn">𐤀𐤁𐤂𐤃𐤄𐤅</div>
+    <div class="splash-bar"><i id="splashBar"></i></div>
+    <div id="splashText">Costruisco la scuola…</div>
+  </div></div>
+  <canvas id="view"></canvas>
+  <div id="markers"></div>
+
+  <header class="hud">
+    <div>
+      <div class="brand"><img src="lib/img/logoOthoca.png" alt=""><span>Othoca <b>3D</b></span> <span class="tour-tag">Tour libero</span></div>
+      <div class="room" id="roomName">Piazzale d'ingresso</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="fotoBtn" title="Foto 360° vere di questa zona">📷</button>
+    <button class="iconbtn" id="mapBtn" title="Mappa (M)">🗺️</button>
+    <button class="iconbtn" id="viewBtn" title="Visuale in prima persona (V)">👁️</button>
+    <button class="iconbtn" id="airBtn" title="Vista dall'alto (H)">🛰️</button>
+    <button class="iconbtn" id="homeBtn" title="Torna all'ingresso">⌂</button>
+    <button class="iconbtn" id="fsBtn" title="Schermo intero">⛶</button>
+  </header>
+
+  <canvas id="minimap" width="600" height="336" title="Apri la mappa" onclick="document.getElementById('mapBtn').click()"></canvas>
+  <div class="controls-tip"><kbd>W</kbd><kbd>S</kbd> cammina · <kbd>A</kbd><kbd>D</kbd> gira · <kbd>Shift</kbd> corri · <kbd>E</kbd> leggi · <kbd>V</kbd> visuale · <kbd>M</kbd> mappa</div>
+  <button type="button" id="useBtn3d"><span>ℹ️</span><b>Avvicinati a un punto informativo</b><kbd>E</kbd></button>
+  <div id="dpad" aria-label="Muovi il robot">
+    <button type="button" data-k="f" aria-label="Avanti">▲</button>
+    <button type="button" data-k="l" aria-label="Gira a sinistra">↺</button>
+    <button type="button" data-k="b" aria-label="Indietro">▼</button>
+    <button type="button" data-k="r" aria-label="Gira a destra">↻</button>
+  </div>
+
+  <div class="overlay" id="intro"><div class="panel">
+    <img src="lib/img/logoOthoca.png" alt="">
+    <h2>Benvenuti all'Othoca!</h2>
+    <p>Questa è la nostra scuola ricostruita in 3D a partire dalle foto 360°. Guida il robot rosa dove vuoi:
+      dal piazzale all'atrio, lungo l'andito fino alla palestra, poi nel giardino, nell'edificio storico, in aula magna e nei laboratori.</p>
+    <p>I cerchi azzurri <b>i</b> sono punti informativi: avvicinati e premi <kbd>E</kbd> per leggere la scheda e vedere le <b>foto 360° vere</b>.</p>
+    <p class="muted"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> per muoverti · <kbd>Shift</kbd> per correre · trascina per guardarti intorno · clic sul pavimento per andare lì · <kbd>M</kbd> mappa con teletrasporto</p>
+    <div class="row" style="justify-content:center"><button class="btn primary" id="startBtn">Inizia il tour</button><a class="btn" href="escape3d.html" style="text-decoration:none">Gioca all'escape room</a></div>
+  </div></div>
+
+  <div class="overlay" id="info" hidden><div class="panel" id="infoBody"></div></div>
+
+  <div class="overlay" id="bigmap" hidden><div class="panel">
+    <div class="eyebrow">Mappa della scuola</div>
+    <h2>Dove vuoi andare?</h2>
+    <canvas id="bigmapCanvas"></canvas>
+    <div class="row"><span class="muted" style="flex:1">Clicca su una zona per teletrasportarti lì.</span><button class="btn" id="bigmapClose">Chiudi</button></div>
+  </div></div>
+
+  <div id="foto" hidden>
+    <div id="pano360"></div>
+    <div class="bar"><div><h3 id="fotoTitle">Foto 360°</h3><small id="fotoName"></small></div><div class="spacer"></div><button class="btn" id="fotoClose">✕ Torna al 3D</button></div>
+    <button class="nav" id="fotoPrev" aria-label="Foto precedente">‹</button>
+    <button class="nav" id="fotoNext" aria-label="Foto successiva">›</button>
+    <div class="credit">Foto 360° reali della scuola · trascina per guardarti intorno</div>
+  </div>
+
+  <script type="importmap">{ "imports": { "three": "./lib/three.module.min.js", "three/addons/": "./lib/addons/" } }</script>
+  <script src="lib/marzipano.js"></script>
+  <script src="tour/foto.js?v=1794501400"></script>
+  <script src="scuola3d-mappa.js?v=1794501400"></script>
+  <script src="tour3d-ui.js?v=1794501400"></script>
+  <script type="module" src="scuola3d.js?v=1794501400"></script>
+</body>
+</html>

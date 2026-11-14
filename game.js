@@ -5,6 +5,7 @@
   const $ = (sel) => document.querySelector(sel);
   // Modalità 3D: la camminata la gestisce percorso.js, qui restano enigmi, timer, frammenti e Othy
   const MODE3D = !!window.PERCORSO_3D;
+  const SOLO = !!GAME.solo; // partite a persona (nome del giocatore invece della squadra)
   // GAME.saveKey (facoltativo): salvataggio separato per altre versioni (es. laboratorio.html)
   const SAVE_KEY = GAME.saveKey || (MODE3D ? "othoca-percorso-v1" : "othoca-escape-v2");
   // GAME.revealAngle (facoltativo, radianti): senza robot, gli oggetti compaiono quando li si guarda
@@ -402,7 +403,7 @@
     if (r <= 0 && !state.end && !timeUpShown && state.start) {
       timeUpShown = true;
       showModal(`<h2>⏰ Tempo scaduto!</h2><p>Il custode sta chiudendo… Potete finire la partita, ma senza punti per la classifica.</p>
-        <div class="actions"><button class="btn" id="nextTeam">Prossima squadra</button><button class="btn primary" data-close>Continua a giocare</button></div>`,
+        <div class="actions"><button class="btn" id="nextTeam">${SOLO ? "Prossimo giocatore" : "Prossima squadra"}</button><button class="btn primary" data-close>Continua a giocare</button></div>`,
         (root) => root.querySelector("#nextTeam").addEventListener("click", reset));
     }
   }
@@ -574,8 +575,8 @@
     }
     if (p.type === "simon") {
       html += `<div class="simon">
-          <div class="lights">${["#ff4d4d", "#4d9dff", "#ffd84d", "#5ee07a"].map((c, i) => `<button type="button" class="spot" data-i="${i}" style="--c:${c}" aria-label="Riflettore ${["rosso", "blu", "giallo", "verde"][i]}" disabled></button>`).join("")}</div>
-          <div class="simon-bar"><span class="round">Spettacolo 1 di ${p.rounds.length}</span><button type="button" class="btn primary" data-play>▶ Guarda</button></div>
+          <div class="lights">${["#ff4d4d", "#4d9dff", "#ffd84d", "#5ee07a"].map((c, i) => `<button type="button" class="spot" data-i="${i}" style="--c:${c}" aria-label="${p.unit || "Riflettore"} ${["rosso", "blu", "giallo", "verde"][i]}" disabled></button>`).join("")}</div>
+          <div class="simon-bar"><span class="round">${p.roundName || "Spettacolo"} 1 di ${p.rounds.length}</span><button type="button" class="btn primary" data-play>▶ Guarda</button></div>
         </div><p class="feedback" aria-live="polite"></p>`;
     }
     html += hintsHtml(id, p);
@@ -679,9 +680,9 @@
       if (pos === p.rounds[round]) {
         listening = false; setEnabled(false);
         round++;
-        if (round === p.rounds.length) { fb.className = "feedback ok"; fb.textContent = "Spettacolo perfetto!"; setTimeout(() => solve(id), 900); return; }
-        fb.className = "feedback ok"; fb.textContent = "Bravo! Ora uno spettacolo più lungo…";
-        roundLbl.textContent = `Spettacolo ${round + 1} di ${p.rounds.length}`;
+        if (round === p.rounds.length) { fb.className = "feedback ok"; fb.textContent = p.doneText || "Spettacolo perfetto!"; setTimeout(() => solve(id), 900); return; }
+        fb.className = "feedback ok"; fb.textContent = p.nextText || "Bravo! Ora uno spettacolo più lungo…";
+        roundLbl.textContent = `${p.roundName || "Spettacolo"} ${round + 1} di ${p.rounds.length}`;
         await wait(1100); play();
       }
     }));
@@ -709,7 +710,7 @@
   function solve(id) {
     const p = GAME.puzzles[id];
     if (!isSolved(id)) state.solved.push(id);
-    if (p.final || p.endsGame) { state.end = Date.now(); save(); refreshHotspots(); sfx.win(); if (avatar()) avatar().emote("Dance", 3); guide.say("Ce l'avete fatta! Il sigillo è salvo. Grazie, amici!", "happy"); return win(); }
+    if (p.final || p.endsGame) { state.end = Date.now(); save(); refreshHotspots(); sfx.win(); if (avatar()) avatar().emote("Dance", 3); guide.say(SOLO ? "Ce l'hai fatta! Il sigillo è salvo. Grazie, amico!" : "Ce l'avete fatta! Il sigillo è salvo. Grazie, amici!", "happy"); return win(); }
     lastGot = p.reward && p.reward.fragment ? id : null;
     save(); renderFragments(); refreshHotspots(); sfx.ok();
     if (avatar()) avatar().emote(p.reward.fragment ? "ThumbsUp" : "Yes");
@@ -732,12 +733,12 @@
   function rankedLB(modeKey) { return loadLB().filter((e) => e.mode === modeKey).sort((a, b) => b.score - a.score || a.time - b.time); }
   function lbHtml(modeKey, highlightId, n = 8) {
     const list = rankedLB(modeKey);
-    if (!list.length) return `<div class="lb-empty">Nessuna squadra in classifica: sarete i primi!</div>`;
+    if (!list.length) return `<div class="lb-empty">${SOLO ? "Nessun giocatore in classifica: sarai il primo!" : "Nessuna squadra in classifica: sarete i primi!"}</div>`;
     const medal = (i) => ["🥇", "🥈", "🥉"][i] || `${i + 1}°`;
     let rows = list.slice(0, n).map((e, i) => `<tr class="${e.id === highlightId ? "me" : ""}"><td>${medal(i)}</td><td>${esc(e.team)}</td><td>${e.score}</td><td>${fmt(e.time)}</td><td>${e.hints}</td></tr>`).join("");
     const myIdx = list.findIndex((e) => e.id === highlightId);
     if (myIdx >= n) { const e = list[myIdx]; rows += `<tr class="me"><td>${myIdx + 1}°</td><td>${esc(e.team)}</td><td>${e.score}</td><td>${fmt(e.time)}</td><td>${e.hints}</td></tr>`; }
-    return `<table class="lb"><thead><tr><th></th><th>Squadra</th><th>Punti</th><th>Tempo</th><th>💡</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table class="lb"><thead><tr><th></th><th>${SOLO ? "Giocatore" : "Squadra"}</th><th>Punti</th><th>Tempo</th><th>💡</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
   let idleTimer = null;
   function armIdleReturn() {
@@ -751,11 +752,11 @@
     const r = remaining();
     const id = `${state.seed}-${state.start}`;
     let lb = loadLB();
-    if (!lb.some((e) => e.id === id)) { lb.push({ id, team: state.team || "Squadra", mode: state.mode || Object.keys(MODES)[0], score: Math.max(0, r), time: used, hints: hintsUsed(), date: Date.now() }); saveLB(lb); }
+    if (!lb.some((e) => e.id === id)) { lb.push({ id, team: state.team || (SOLO ? "Giocatore" : "Squadra"), mode: state.mode || Object.keys(MODES)[0], score: Math.max(0, r), time: used, hints: hintsUsed(), date: Date.now() }); saveLB(lb); }
     const ranked = rankedLB(state.mode || Object.keys(MODES)[0]), pos = ranked.findIndex((e) => e.id === id) + 1;
     armIdleReturn();
     showModal(`<div class="win">${heroHtml()}
-      <p class="eyebrow center">Squadra ${esc(state.team || "")} · partita ${mode().name.toLowerCase()}</p>
+      <p class="eyebrow center">${SOLO ? "👤" : "Squadra"} ${esc(state.team || "")} · partita ${mode().name.toLowerCase()}</p>
       <div class="seal phn">${fragPuzzles().map(([, q]) => q.reward.fragment.symbol).sort().join("")}</div>
       <h2>${GAME.winTitle || "Il sigillo è salvo!"}</h2>${GAME.outro}
       <dl class="stats">
@@ -763,9 +764,9 @@
         <div><dt>Indizi usati</dt><dd>${hintsUsed()}</dd></div>
         <div><dt>Punteggio</dt><dd>${Math.max(0, r)}</dd></div>
       </dl>
-      <div class="rank-badge">${r > 0 ? `Siete al <b>${pos}° posto</b> su ${ranked.length} nella classifica ${mode().name.toLowerCase()}!` : "Avete finito fuori tempo: niente punti, ma il sigillo è salvo!"}</div>
+      <div class="rank-badge">${r > 0 ? `${SOLO ? "Sei" : "Siete"} al <b>${pos}° posto</b> su ${ranked.length} nella classifica ${mode().name.toLowerCase()}!` : (SOLO ? "Hai finito fuori tempo: niente punti, ma il sigillo è salvo!" : "Avete finito fuori tempo: niente punti, ma il sigillo è salvo!")}</div>
       ${lbHtml(state.mode || Object.keys(MODES)[0], id)}
-      <div class="actions"><button class="btn" data-close>Guarda in giro</button><button class="btn primary" id="again">Prossima squadra ➜</button></div>
+      <div class="actions"><button class="btn" data-close>Guarda in giro</button><button class="btn primary" id="again">${SOLO ? "Prossimo giocatore" : "Prossima squadra"} ➜</button></div>
     </div>`, (root) => root.querySelector("#again").addEventListener("click", reset));
   }
   function reset() {
@@ -789,8 +790,8 @@
     showModal(`${heroHtml()}<p class="eyebrow">Escape room · ITIS Othoca · Open Day</p><h1>${GAME.title}</h1>
       <div class="tanit-row"><i></i><i></i><i></i></div>${GAME.intro}
       <div class="openday">
-        <label class="team-field"><span>Nome della squadra</span>
-          <input id="teamName" maxlength="24" placeholder="Squadra ${teamsSoFar + 1}" value="${esc(state.team || "")}" autocomplete="off"></label>
+        <label class="team-field"><span>${SOLO ? "Il tuo nome" : "Nome della squadra"}</span>
+          <input id="teamName" maxlength="24" placeholder="${SOLO ? "Giocatore" : "Squadra"} ${teamsSoFar + 1}" value="${esc(state.team || "")}" autocomplete="off"></label>
         ${modeKeys.length > 1 ? `<div class="modes">${modeKeys.map((k) => `<button type="button" class="mode${k === sel ? " on" : ""}" data-mode="${k}"><b>${MODES[k].name}</b><span>${MODES[k].desc || MODES[k].minutes + " minuti"}</span></button>`).join("")}</div>` : ""}
         <div class="lb-wrap"><p class="kicker-lb">🏆 Classifica <span id="lbMode">${MODES[sel].name.toLowerCase()}</span></p><div id="lbBox">${lbHtml(sel, null, 5)}</div></div>
       </div>
@@ -817,7 +818,7 @@
   // nome della squadra nella barra in alto
   const teamTag = document.createElement("div"); teamTag.id = "teamTag";
   const timerEl = $("#timer"); if (timerEl) timerEl.parentNode.insertBefore(teamTag, timerEl);
-  function renderTeam() { teamTag.textContent = state.team ? `👥 ${state.team}` : ""; teamTag.hidden = !state.team; }
+  function renderTeam() { teamTag.textContent = state.team ? `${SOLO ? "👤" : "👥"} ${state.team}` : ""; teamTag.hidden = !state.team; }
   renderTeam();
 
   // ---------- Pannello del gestore (Ctrl+Shift+G oppure 5 tocchi sul logo) ----------
@@ -844,7 +845,7 @@
     }
     const nu = nextUnsolved();
     showModal(`<div class="admin"><p class="eyebrow">Solo per chi gestisce il gioco</p><h2>🔧 Pannello del gestore</h2>
-      <div class="admin-state">Squadra: <b>${esc(state.team || "—")}</b> · Partita: <b>${mode().name}</b> · Tempo: <b>${fmt(remaining())}</b> · Indizi: <b>${hintsUsed()}</b></div>
+      <div class="admin-state">${SOLO ? "Giocatore" : "Squadra"}: <b>${esc(state.team || "—")}</b> · Partita: <b>${mode().name}</b> · Tempo: <b>${fmt(remaining())}</b> · Indizi: <b>${hintsUsed()}</b></div>
       <table class="sol"><thead><tr><th>Dove</th><th>Oggetto</th><th>Soluzione di questa partita</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table>
       <div class="admin-actions">
         <button class="btn" id="aSolve" ${nu ? "" : "disabled"}>⏭️ Risolvi l'enigma attuale${nu ? ` (${esc(GAME.puzzles[nu].title)})` : ""}</button>
@@ -858,7 +859,7 @@
       root.querySelector("#aSolve").addEventListener("click", () => { const id = nextUnsolved(); if (id) { closeModal(); setTimeout(() => solve(id), 150); } });
       root.querySelector("#aNew").addEventListener("click", reset);
       root.querySelector("#aCsv").addEventListener("click", () => {
-        const lines = [["posizione", "squadra", "partita", "punti", "tempo", "indizi", "data"]];
+        const lines = [["posizione", SOLO ? "giocatore" : "squadra", "partita", "punti", "tempo", "indizi", "data"]];
         for (const k of Object.keys(MODES)) rankedLB(k).forEach((e, i) => lines.push([i + 1, e.team, MODES[k].name, e.score, fmt(e.time), e.hints, new Date(e.date).toLocaleString("it-IT")]));
         const csv = lines.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
         const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv" })); a.download = "classifica-othoca.csv"; a.click();
