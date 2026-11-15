@@ -62,14 +62,17 @@ function reachable() {
 }
 
 // ---------- Zone in cui si può camminare ----------
+// Ogni punto di scatto ha il suo raggio (walk): le stanze grandi si esplorano,
+// i corridoi stretti restano stretti e non si "buca" la parete della foto.
+const DEFAULT_WALK = 2.6, EDGE_WALK = 1.1;
 let reach = new Set(nodes);
 function inside(p) {
-  for (const n of reach) if (p.distanceTo(n.pos) < 2.6) return true;
+  for (const n of reach) if (p.distanceTo(n.pos) < (n.walk || DEFAULT_WALK)) return true;
   for (const e of edges) {
     if (!reach.has(e.A) && !reach.has(e.B)) continue;
     const ab = e.B.pos.clone().sub(e.A.pos), t = Math.max(0, Math.min(1, p.clone().sub(e.A.pos).dot(ab) / ab.lengthSq()));
     if (!isOpen(e) && t > 0.42) continue; // porta chiusa: si arriva solo fino a poco prima di metà strada
-    if (p.distanceTo(e.A.pos.clone().add(ab.multiplyScalar(t))) < 1.1) return true;
+    if (p.distanceTo(e.A.pos.clone().add(ab.multiplyScalar(t))) < EDGE_WALK) return true;
   }
   return false;
 }
@@ -201,18 +204,90 @@ function itemWorld(n, it) {
   if (dir.y < -1e-3) t = Math.min(t, H / -dir.y);
   return new THREE.Vector3(n.pos.x, H, n.pos.y).add(dir.multiplyScalar(t));
 }
+// Piccoli oggetti 3D per ciò che nella foto non c'è (post-it, tastierino, cassa, pannello):
+// così il segnaposto non indica una parete vuota ma un oggetto vero.
+function makeItemProp(it, p3, n) {
+  const face = () => Math.atan2(n.pos.x - p3.x, n.pos.y - p3.z);
+  let grp;
+  if (it.puzzle === "postit") {
+    const tex = canvasTex((g, w, h) => {
+      g.fillStyle = "#ffe45c"; g.fillRect(0, 0, w, h);
+      g.fillStyle = "#f2cf3a"; g.fillRect(0, h * 0.8, w, h * 0.2);
+      g.strokeStyle = "#9a7a12"; g.lineWidth = 3;
+      for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo(18, 30 + i * 16); g.lineTo(w - 18, 30 + i * 16); g.stroke(); }
+    }, 96, 96);
+    grp = new THREE.Group();
+    grp.add(new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide })));
+  } else if (it.puzzle === "binario") {
+    grp = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.24, 0.055), new THREE.MeshStandardMaterial({ color: 0x3a3f45, roughness: 0.55 }));
+    grp.add(body);
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.05), new THREE.MeshBasicMaterial({ color: 0x8be9a6 }));
+    screen.position.set(0, 0.065, 0.031); grp.add(screen);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      const k = new THREE.Mesh(new THREE.PlaneGeometry(0.028, 0.022), new THREE.MeshBasicMaterial({ color: 0xc8ccd2 }));
+      k.position.set(-0.045 + c * 0.045, -0.005 - r * 0.038, 0.031); grp.add(k);
+    }
+    const led = new THREE.Mesh(new THREE.CircleGeometry(0.009, 10), new THREE.MeshBasicMaterial({ color: 0xff5b5b }));
+    led.position.set(0.062, 0.095, 0.031); grp.add(led);
+  } else if (it.puzzle === "finale") {
+    grp = new THREE.Group();
+    const metal = new THREE.MeshStandardMaterial({ color: 0x1a2740, roughness: 0.45, metalness: 0.55 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x0a1226, roughness: 0.7 });
+    const glow = new THREE.MeshBasicMaterial({ color: 0x2ee6ff });
+    const hot = new THREE.MeshBasicMaterial({ color: 0xff4f9a });
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.16, 0.52), dark); base.position.y = 0.08; grp.add(base);
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.36, 0.34), metal); stand.position.y = 0.34; grp.add(stand);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.07, 0.42), metal); top.position.y = 0.55; grp.add(top);
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.115, 18, 14), glow); orb.position.y = 0.68; grp.add(orb);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.018, 8, 28), glow);
+    ring.rotation.x = Math.PI / 2; ring.position.y = 0.68; grp.add(ring);
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.012, 8, 28), hot);
+    ring2.rotation.x = Math.PI / 2; ring2.position.y = 0.68; grp.add(ring2);
+    // quattro slot dei chip sul frontale
+    [0x2ee6ff, 0xff4f9a, 0xb8ff5a, 0xffd166].forEach((c, i) => {
+      const slot = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.04, 0.02), new THREE.MeshBasicMaterial({ color: c }));
+      slot.position.set(-0.135 + i * 0.09, 0.38, 0.18); grp.add(slot);
+    });
+    const light = new THREE.PointLight(0x2ee6ff, 0.8, 2.2); light.position.set(0, 0.75, 0); grp.add(light);
+  } else if (it.puzzle === "simon") {
+    grp = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.44, 0.07), new THREE.MeshStandardMaterial({ color: 0xe9e5dd, roughness: 0.65 }));
+    grp.add(body);
+    const colors = [0xff4d5a, 0xffd24d, 0x59e07a, 0x5aa9ff];
+    colors.forEach((c, i) => {
+      const led = new THREE.Mesh(new THREE.CircleGeometry(0.038, 14), new THREE.MeshBasicMaterial({ color: c }));
+      led.position.set(i % 2 ? 0.075 : -0.075, i < 2 ? 0.09 : -0.09, 0.037); grp.add(led);
+    });
+  } else return null;
+  if (it.puzzle === "finale") grp.position.set(p3.x, 0, p3.z);
+  else grp.position.copy(p3);
+  grp.rotation.y = face();
+  scene.add(grp);
+  return grp;
+}
+
+// ---------- Professori statici accanto al loro oggetto ----------
+// Ogni task è consegnato da un docente in carne e ossa, fermo dentro la scuola.
+const profOf = (it) => (it && (it.prof || (GAME.profs && GAME.profs[it.puzzle]))) || null;
+const PROF_NEAR = 8;   // da qui in poi il professore si vede
+
 const layer = document.getElementById("markers");
 const markers = [];
 for (const n of nodes) for (const it of n.items || []) {
   const p3 = itemWorld(n, it);
   const toItem = new THREE.Vector2(p3.x - n.pos.x, p3.z - n.pos.y);
-  const stand = n.pos.clone().add(toItem.clone().normalize().multiplyScalar(Math.max(0.8, Math.min(toItem.length() - 0.8, 2.2))));
+  // Il robot si ferma davanti all'oggetto (non a 2 m dal punto di scatto):
+  // si avvicina quanto la stanza permette, lasciando almeno un metro d'aria.
+  const walkR = n.walk || DEFAULT_WALK;
+  const standDist = Math.max(0.7, Math.min(toItem.length() - 1.1, walkR - 0.4));
+  const stand = n.pos.clone().add(toItem.clone().normalize().multiplyScalar(standDist));
   const el = document.createElement("button");
   el.className = "hs item hidden";
   el.innerHTML = `<span class="dot">${it.icon || "✨"}</span><span class="lbl"></span>`;
   el.querySelector(".lbl").textContent = it.label;
   layer.appendChild(el);
-  const m = { el, p3, stand, it, node: n };
+  const m = { el, p3, stand, it, node: n, prof: profOf(it), prop: makeItemProp(it, p3, n) };
   el.addEventListener("click", (e) => {
     e.stopPropagation(); if (blocked()) return;
     if (m === useTarget) useNearest();          // l'enigma si apre solo da vicino
@@ -220,6 +295,77 @@ for (const n of nodes) for (const it of n.items || []) {
   });
   markers.push(m);
 }
+
+// figure low-poly dei professori: camicia colorata, testa, cartellino e targhetta col nome
+const PROF_SHIRTS = [0x2f6f9e, 0x8a3f6b, 0x3f7a5a, 0x7a5a3f, 0x4a4a8a, 0x9e5a2f, 0x2f7a7a, 0x6b3f7a];
+// rettangolo con angoli tondi (compatibile anche con browser senza ctx.roundRect)
+function roundRectPath(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+function profTagTex(prof) {
+  return canvasTex((g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = "rgba(6, 14, 30, .9)";
+    g.strokeStyle = "#2ee6ff"; g.lineWidth = 3;
+    roundRectPath(g, 6, 6, w - 12, h - 12, 26); g.fill(); g.stroke();
+    g.textAlign = "center";
+    g.fillStyle = "#8ff3ff"; g.font = "700 38px 'Chakra Petch', Inter, sans-serif";
+    g.fillText(prof.short || prof.name, w / 2, 58);
+    g.fillStyle = "#b8ff5a"; g.font = "600 21px 'Chakra Petch', Inter, sans-serif";
+    g.fillText((prof.subject || "Othoca").toUpperCase(), w / 2, 94);
+  }, 512, 128);
+}
+function makeProfProp(prof, at, n, idx) {
+  const grp = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({ color: 0xe8b98f, roughness: 0.85 });
+  const shirt = new THREE.MeshStandardMaterial({ color: PROF_SHIRTS[idx % PROF_SHIRTS.length], roughness: 0.8 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1d2433, roughness: 0.9 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: idx % 3 === 0 ? 0x2a2018 : idx % 3 === 1 ? 0x4a3a26 : 0x6b6257, roughness: 0.95 });
+
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.74, 0.18), dark); legL.position.set(-0.11, 0.37, 0); grp.add(legL);
+  const legR = legL.clone(); legR.position.x = 0.11; grp.add(legR);
+  const shoeL = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.08, 0.26), dark); shoeL.position.set(-0.11, 0.04, 0.04); grp.add(shoeL);
+  const shoeR = shoeL.clone(); shoeR.position.x = 0.11; grp.add(shoeR);
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.62, 0.26), shirt); torso.position.y = 1.05; grp.add(torso);
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.56, 0.16), shirt); armL.position.set(-0.3, 1.02, 0.01); armL.rotation.z = 0.08; grp.add(armL);
+  const armR = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.56, 0.16), shirt); armR.position.set(0.3, 1.02, 0.01); armR.rotation.z = -0.08; grp.add(armR);
+  const handL = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.12, 0.14), skin); handL.position.set(-0.33, 0.71, 0.02); grp.add(handL);
+  const handR = handL.clone(); handR.position.x = 0.33; grp.add(handR);
+
+  const neck = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.12), skin); neck.position.y = 1.41; grp.add(neck);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.29, 0.25), skin); head.position.y = 1.6; grp.add(head);
+  const hair = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.09, 0.27), hairMat); hair.position.y = 1.76; grp.add(hair);
+  const eye = new THREE.MeshBasicMaterial({ color: 0x1b2436 });
+  [-0.06, 0.06].forEach((x) => { const e = new THREE.Mesh(new THREE.PlaneGeometry(0.035, 0.035), eye); e.position.set(x, 1.62, 0.127); grp.add(e); });
+
+  // cartellino sul petto
+  const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.07), new THREE.MeshBasicMaterial({ color: 0xb8ff5a }));
+  badge.position.set(0.12, 1.15, 0.135); grp.add(badge);
+
+  // targhetta col nome sopra la testa
+  const tagMat = new THREE.SpriteMaterial({ map: profTagTex(prof), transparent: true, depthWrite: false });
+  const tag = new THREE.Sprite(tagMat);
+  tag.scale.set(1.45, 0.36, 1); tag.position.y = 2.1; grp.add(tag);
+  // il font del cartello arriva dal web: ridisegnalo quando è pronto
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+    const old = tagMat.map; tagMat.map = profTagTex(prof); tagMat.needsUpdate = true; if (old) old.dispose();
+  }).catch(() => {});
+
+  grp.position.set(at.x, 0, at.y);
+  grp.rotation.y = Math.atan2(n.pos.x - at.x, n.pos.y - at.y);
+  grp.visible = false;
+  scene.add(grp);
+  return grp;
+}
+let profIdx = 0;
+
 for (const e of edges.filter((x) => x.lock)) {
   const p = e.A.pos.clone().lerp(e.B.pos, 0.48);
   const el = document.createElement("button");
@@ -232,14 +378,40 @@ for (const e of edges.filter((x) => x.lock)) {
 // ---------- Effetti nel mondo 3D ----------
 const PINK = new THREE.Color(0xf25a8e), GOLD = new THREE.Color(0xf2c063);
 function canvasTex(draw, w = 128, h = 128) { const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
-// segno di Tanit (usato su barriere e anelli)
-function drawTanit(g, w, h, color) {
-  g.fillStyle = color; const cx = w / 2, u = w / 128;
-  g.beginPath(); g.arc(cx, 30 * u, 12 * u, 0, Math.PI * 2); g.fill();
-  g.fillRect(cx - 36 * u, 48 * u, 72 * u, 9 * u); g.fillRect(cx - 36 * u, 36 * u, 8 * u, 21 * u); g.fillRect(cx + 28 * u, 36 * u, 8 * u, 21 * u);
-  g.beginPath(); g.moveTo(cx - 12 * u, 57 * u); g.lineTo(cx + 12 * u, 57 * u); g.lineTo(cx + 26 * u, 104 * u); g.lineTo(cx - 26 * u, 104 * u); g.closePath(); g.fill();
+// simbolo del chip (usato su barriere e anelli)
+function drawChip(g, w, h, color) {
+  g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 6; g.lineCap = "round";
+  const cx = w / 2, cy = h / 2, u = w / 128;
+  roundRectPath(g, cx - 30 * u, cy - 30 * u, 60 * u, 60 * u, 10 * u); g.stroke();
+  g.beginPath();
+  for (let i = -1; i <= 1; i++) {
+    const o = i * 18 * u;
+    g.moveTo(cx + o, cy - 46 * u); g.lineTo(cx + o, cy - 30 * u);
+    g.moveTo(cx + o, cy + 30 * u); g.lineTo(cx + o, cy + 46 * u);
+    g.moveTo(cx - 46 * u, cy + o); g.lineTo(cx - 30 * u, cy + o);
+    g.moveTo(cx + 30 * u, cy + o); g.lineTo(cx + 46 * u, cy + o);
+  }
+  g.stroke();
+  g.beginPath(); g.arc(cx, cy, 10 * u, 0, Math.PI * 2); g.fill();
 }
-const tanitTex = canvasTex((g, w, h) => drawTanit(g, w, h, "#ffffff"));
+const chipTex = canvasTex((g, w, h) => drawChip(g, w, h, "#ffffff"));
+
+// i professori si posizionano accanto al loro oggetto (qui le texture sono già disponibili)
+const profPlaced = [];
+for (const m of markers) {
+  if (!m.it || !m.prof) continue;
+  const toItem = new THREE.Vector2(m.p3.x - m.node.pos.x, m.p3.z - m.node.pos.y).normalize();
+  const perp = new THREE.Vector2(-toItem.y, toItem.x);
+  const roomR = m.node.walk || DEFAULT_WALK;
+  const off = Math.min(0.95, Math.max(0.45, roomR * 0.3));
+  const back = Math.min(0.35, roomR * 0.14);
+  const base = m.stand.clone().sub(toItem.clone().multiplyScalar(back));
+  // un professore per lato: se due docenti finiscono addosso, il secondo si sposta dall'altra parte
+  let at = base.clone().add(perp.clone().multiplyScalar(off));
+  if (profPlaced.some((p) => p.node === m.node && at.distanceTo(p.at) < 1.1)) at = base.clone().sub(perp.clone().multiplyScalar(off));
+  profPlaced.push({ node: m.node, at });
+  m.profProp = makeProfProp(m.prof, at, m.node, profIdx++);
+}
 
 // a) scia di frecce luminose sul pavimento verso l'obiettivo
 const chevronTex = canvasTex((g, w, h) => {
@@ -274,10 +446,10 @@ function updateTrail(t, show) {
   });
 }
 
-// b) barriere luminose con il segno di Tanit sui passaggi chiusi (si dissolvono quando si aprono)
+// b) barriere luminose con il chip di Othy sui passaggi chiusi (si dissolvono quando si aprono)
 const barrierMat = () => new THREE.ShaderMaterial({
   transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
-  uniforms: { time: { value: 0 }, prog: { value: 0 }, tex: { value: tanitTex }, c1: { value: PINK }, c2: { value: GOLD } },
+  uniforms: { time: { value: 0 }, prog: { value: 0 }, tex: { value: chipTex }, c1: { value: PINK }, c2: { value: GOLD } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: `varying vec2 vUv; uniform float time, prog; uniform sampler2D tex; uniform vec3 c1, c2;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -493,7 +665,9 @@ function updateObjective(camYaw) {
     objWay = r[0];
     layTrail([pos.clone(), ...r]);
     const label = G.isFound(goal.it.puzzle) ? goal.it.label : "Esplora";
-    objText.innerHTML = `${label} <span>· ${goal.node.name}</span>`;
+    const prof = goal.prof;
+    const profDel = prof && /ssa\b/i.test(prof.short || prof.name || "") ? "della" : "del";
+    objText.innerHTML = `${prof ? `Task ${profDel} ${prof.short || prof.name} · ` : ""}${label} <span>· ${goal.node.name}</span>`;
   }
   if (!objWay) return;
   const dx = objWay.x - pos.x, dz = objWay.y - pos.y, d = pos.distanceTo(goal.stand);
@@ -591,7 +765,8 @@ function frame() {
 
   // le due foto più vicine alla telecamera, fuse in base alla distanza
   const cp = new THREE.Vector2(camera.position.x, camera.position.z);
-  const near = nodes.filter((n) => n.tex).map((n) => [n, cp.distanceTo(n.pos)]).sort((a, b) => a[1] - b[1]);
+  // solo le foto delle stanze raggiungibili: quelle dietro una porta chiusa non "trapelano"
+  const near = nodes.filter((n) => n.tex && reach.has(n)).map((n) => [n, cp.distanceTo(n.pos)]).sort((a, b) => a[1] - b[1]);
   camera.updateMatrixWorld();
   if (near.length) {
     const [A, dA] = near[0], [B, dB] = near[1] || near[0];
@@ -619,6 +794,8 @@ function frame() {
       m.el.classList.toggle("inrange", m === useTarget);
       show = reach.has(m.node) && pos.distanceTo(m.stand) < SHOW_NEAR;   // da lontano non si vede niente
     }
+    if (m.prop) m.prop.visible = !!show;
+    if (m.profProp) m.profProp.visible = G.started() && reach.has(m.node) && pos.distanceTo(m.stand) < PROF_NEAR;
     v3.copy(m.p3).project(camera);
     if (!show || v3.z > 1 || Math.abs(v3.x) > 1.15 || Math.abs(v3.y) > 1.15) { m.el.style.display = "none"; continue; }
     m.el.style.display = "";
@@ -634,12 +811,40 @@ function frame() {
 const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function lerpAngle(a, b, k) { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return a + d * k; }
 
-// nuova partita: il robot torna all'ingresso
-window.Percorso3D = { reset() { pos.copy(nodes[0].pos); heading = startHeading(); target = null; onArrive = null; camInit = false; } };
+// nuova partita: il robot torna all'ingresso e tutto lo stato di gioco riparte da zero
+window.Percorso3D = {
+  reset() {
+    pos.copy(nodes[0].pos); heading = startHeading();
+    target = null; waypoints = []; onArrive = null; useTarget = null;
+    camInit = false; walkPhase = 0; lastLockMsg = 0;
+    keys.clear(); marker.material.opacity = 0;
+    // senza questo, in una nuova partita gli enigmi non si riaprirebbero più da soli
+    autoOpened.clear();
+    for (const m of markers) { m.wasFar = false; if (m.prop) m.prop.visible = false; if (m.profProp) m.profProp.visible = false; }
+    emoting = false;
+    if (robot) play("Idle", 0.2);
+  }
+};
 // comando di prova: Percorso.vaiA(i) porta il robot al punto di scatto i
 window.Percorso = {
   nodi: () => nodes.map((n) => n.name), vaiA: (i) => walkTo(nodes[i].pos.clone()), pos: () => pos.clone(),
   vaiAOggetto: (label) => { const m = markers.find((x) => x.it && x.it.label === label); if (m) walkTo(m.stand.clone()); return !!m; },
+  // comandi di prova: teletrasporto e mappa (utili per controllare il percorso)
+  mappa: () => nodes.map((n) => ({ nome: n.name, x: +n.pos.x.toFixed(2), z: +n.pos.y.toFixed(2), walk: n.walk || DEFAULT_WALK })),
+  oggetti: () => markers.filter((m) => !m.edge).map((m) => ({ label: m.it.label, stanza: m.node.name,
+    p3: [+m.p3.x.toFixed(2), +m.p3.y.toFixed(2), +m.p3.z.toFixed(2)], stand: [+m.stand.x.toFixed(2), +m.stand.y.toFixed(2)],
+    dist: +m.stand.distanceTo(m.node.pos).toFixed(2) })),
+  professori: () => markers.filter((m) => m.profProp).map((m) => ({ prof: m.prof.short, materia: m.prof.subject,
+    stanza: m.node.name, visibile: G.started() && reach.has(m.node) && pos.distanceTo(m.stand) < PROF_NEAR,
+    distanza: +pos.distanceTo(m.stand).toFixed(2),
+    schermo: (() => { const v = m.profProp.position.clone().setY(1.5).project(camera); return [+v.x.toFixed(2), +v.y.toFixed(2), +v.z.toFixed(2)]; })(),
+    pos: [+m.profProp.position.x.toFixed(2), +m.profProp.position.z.toFixed(2)] })),
+  teleportaOggetto: (label) => { const m = markers.find((x) => x.it && x.it.label === label); if (!m) return false;
+    pos.copy(m.stand); target = null; waypoints = []; onArrive = null; marker.material.opacity = 0; camInit = false;
+    m.wasFar = true;
+    heading = Math.atan2(m.p3.x - pos.x, m.p3.z - pos.y); return true; },
+  passo: () => { reach = reachable(); useTarget = findUseTarget(); if (G.started()) autoOpen();
+    return { near: useTarget ? (useTarget.edge ? "porta" : useTarget.it.label) : null }; },
   visibili: () => markers.filter((m) => !m.edge && m.el.style.display !== "none").map((m) => m.it.label),
   usa: () => useNearest(), vicino: () => (useTarget ? (useTarget.edge ? "porta" : useTarget.it.label) : null),
   scia: () => ({ punti: trailPts ? trailPts.length : 0, visibili: trail.filter((m) => m.visible).length, opac: trail.slice(0, 4).map((m) => +m.material.opacity.toFixed(2)), mappa: !!chevronTex.image, cam: camera.position.toArray().map((v) => +v.toFixed(2)), prima: trail[0].position.toArray().map((v) => +v.toFixed(2)), obiettivo: objGoal && objGoal.it.label })
@@ -687,13 +892,11 @@ new GLTFLoader().load("lib/models/RobotExpressive.glb", (gltf) => {
   const head = robot.getObjectByName("Head"), hp = new THREE.Vector3(); head.getWorldPosition(hp);
   const back = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.22), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.5 }));
   back.position.set(hp.x, hp.y + 0.14, hp.z - 0.42); back.rotation.y = Math.PI; scene.add(back); head.attach(back);
-  // segno di Tanit dorato sul petto
+  // chip dorato sul petto del robot
   const tc = document.createElement("canvas"); tc.width = tc.height = 128;
   const tg = tc.getContext("2d");
   tg.beginPath(); tg.arc(64, 64, 60, 0, Math.PI * 2); tg.fillStyle = "#a3124a"; tg.fill(); tg.lineWidth = 6; tg.strokeStyle = "#f2c063"; tg.stroke();
-  tg.fillStyle = "#f2c063"; tg.beginPath(); tg.arc(64, 34, 11, 0, Math.PI * 2); tg.fill();
-  tg.fillRect(30, 50, 68, 9); tg.fillRect(30, 40, 8, 19); tg.fillRect(90, 40, 8, 19);
-  tg.beginPath(); tg.moveTo(52, 59); tg.lineTo(76, 59); tg.lineTo(88, 100); tg.lineTo(40, 100); tg.closePath(); tg.fill();
+  drawChip(tg, 128, 128, "#f2c063");
   const ttex = new THREE.CanvasTexture(tc); ttex.colorSpace = THREE.SRGBColorSpace;
   const torso = robot.getObjectByName("Torso") || robot.getObjectByName("Abdomen");
   if (torso) {

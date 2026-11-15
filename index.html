@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Il sigillo di Othoca</title>
+<title>Il codice di Othoca</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #14110f;
@@ -614,7 +614,7 @@
   .slot .shard { animation: pop .35s; cursor: default; transform: none; }
 
   /* =====================================================================
-     MODALITÀ OPEN DAY: squadra, durata, classifica, pannello del gestore
+     MODALITÀ OPEN DAY: giocatore singolo, 10 minuti, classifica, pannello del gestore
      ===================================================================== */
   .openday { margin: 14px 26px 0; display: grid; gap: 12px; }
   .team-field { display: grid; gap: 4px; }
@@ -658,13 +658,300 @@
     position: sticky; bottom: 0; z-index: 3; margin-top: 10px; padding-top: 16px; padding-bottom: 18px;
     background: linear-gradient(to bottom, rgba(23,10,16,0), #170a10 40%); }
   .btn:disabled { opacity: .45; cursor: default; }
+
+  /* =====================================================================
+     UI 3D — "NEON LAB": interfaccia per il gioco a camminata continua.
+     Tutto è limitato a body.mode3d: la versione 360 resta com'è.
+     ===================================================================== */
+  body.mode3d {
+    --bg: #060a17;
+    --panel: rgba(12, 20, 40, .84);
+    --panel-solid: #0d1730;
+    --ink: #eaf3ff;
+    --muted: #8fa6cf;
+    --accent: #ff4f9a;
+    --accent-2: #2ee6ff;
+    --lime: #b8ff5a;
+    --gold: #ffd166;
+    --line: rgba(120, 170, 255, .22);
+    --radius: 20px;
+    background:
+      radial-gradient(1200px 800px at 12% -10%, rgba(255, 79, 154, .18), transparent 55%),
+      radial-gradient(1000px 700px at 92% 0%, rgba(46, 230, 255, .15), transparent 55%),
+      radial-gradient(900px 900px at 50% 120%, rgba(120, 80, 255, .18), transparent 60%),
+      #060a17;
+    color: var(--ink);
+    font-family: Inter, system-ui, sans-serif;
+  }
+  body.mode3d .hud { padding: 14px 18px; gap: 12px; align-items: flex-start;
+    background: linear-gradient(to bottom, rgba(3, 7, 18, .9), rgba(3, 7, 18, 0)); }
+  body.mode3d .hud-left, body.mode3d .hud-right {
+    padding: 9px 12px; border-radius: 18px; border: 1px solid var(--line);
+    background: linear-gradient(135deg, rgba(13, 23, 48, .92), rgba(13, 23, 48, .55));
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .38), inset 0 1px 0 rgba(255, 255, 255, .07);
+    backdrop-filter: blur(10px);
+  }
+  body.mode3d .hud-left { display: flex; flex-direction: column; gap: 1px; }
+  body.mode3d .hud-right { display: flex; align-items: center; gap: 10px; }
+  body.mode3d .hud-actions { display: flex; gap: 6px; }
+  body.mode3d .brand { gap: 10px; }
+  body.mode3d .brand img { width: 40px; height: 40px; border-radius: 12px; background: #fff; padding: 3px;
+    box-shadow: 0 0 0 2px rgba(46, 230, 255, .55), 0 6px 18px rgba(46, 230, 255, .25); }
+  body.mode3d .brand span { font-family: "Chakra Petch", sans-serif; font-size: 17px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
+  body.mode3d .brand b { color: var(--accent-2); }
+  body.mode3d .room { margin: 1px 0 0 50px; color: var(--accent); font: 700 11px "Chakra Petch", sans-serif;
+    letter-spacing: .16em; text-transform: uppercase; }
+  body.mode3d .iconbtn { width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(120, 170, 255, .24);
+    background: rgba(255, 255, 255, .04); color: var(--ink); font-size: 16px; transition: .15s; }
+  body.mode3d .iconbtn:hover { background: rgba(46, 230, 255, .12); border-color: var(--accent-2); transform: translateY(-1px); }
+  body.mode3d #timer { min-width: 94px; padding: 9px 13px; border-radius: 14px; border: 1px solid rgba(255, 79, 154, .5);
+    background: linear-gradient(180deg, rgba(255, 79, 154, .22), rgba(13, 23, 48, .92));
+    box-shadow: inset 0 0 18px rgba(255, 79, 154, .12), 0 0 18px rgba(255, 79, 154, .1);
+    color: #fff; font: 700 21px/1 "Chakra Petch", monospace; text-align: center; }
+  body.mode3d #timer::before { content: "TEMPO"; display: block; margin-bottom: 2px; font: 700 8px "Chakra Petch", sans-serif;
+    letter-spacing: .24em; color: var(--accent); }
+  body.mode3d #timer.warn { animation: timerFlash .9s ease-in-out infinite; }
+  @keyframes timerFlash { 50% { border-color: #fff; box-shadow: 0 0 30px rgba(255, 79, 154, .7); } }
+  body.mode3d #fragments { display: flex; gap: 7px; }
+  body.mode3d .frag { position: relative; width: 44px; height: 46px; border-radius: 11px; border: 1px dashed rgba(46, 230, 255, .35);
+    background: rgba(255, 255, 255, .03); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1px; color: var(--muted); clip-path: none; }
+  body.mode3d .frag::after { content: ""; position: absolute; inset: 4px; border-radius: 7px; border: 1px solid rgba(46, 230, 255, .08); pointer-events: none; }
+  body.mode3d .frag.got { border: 1px solid var(--accent-2); color: var(--ink);
+    background: linear-gradient(145deg, rgba(46, 230, 255, .18), rgba(255, 79, 154, .14));
+    box-shadow: 0 0 18px rgba(46, 230, 255, .2), inset 0 0 12px rgba(46, 230, 255, .12); }
+  body.mode3d .frag .chip-letter { font: 700 17px/1 "Chakra Petch", sans-serif; color: var(--accent-2); }
+  body.mode3d .frag .chip-q { font: 700 16px "Chakra Petch", sans-serif; color: var(--muted); }
+  body.mode3d .frag b { font: 700 11px "Chakra Petch", monospace; color: var(--ink); }
+  body.mode3d .frag.new { animation: chipNew 1.2s ease-out 2; }
+  @keyframes chipNew { 30% { transform: scale(1.28) rotate(-5deg); box-shadow: 0 0 30px rgba(46, 230, 255, .75); } }
+
+  body.mode3d #roomBanner { position: fixed; top: 150px; left: 50%; z-index: 6; pointer-events: none;
+    padding: 10px 24px; border-radius: 16px; text-align: center; opacity: 0;
+    transform: translate(-50%, -10px) scale(.96); transition: .35s cubic-bezier(.2, .9, .3, 1.2);
+    background: linear-gradient(120deg, rgba(13, 23, 48, .96), rgba(30, 12, 40, .92));
+    border: 1px solid rgba(46, 230, 255, .35); box-shadow: 0 16px 44px rgba(0, 0, 0, .5), 0 0 30px rgba(46, 230, 255, .12); }
+  body.mode3d #roomBanner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  body.mode3d #roomBanner small { display: block; margin-bottom: 2px; font: 700 9px "Chakra Petch", sans-serif;
+    letter-spacing: .3em; color: var(--accent); }
+  body.mode3d #roomBanner b { font: 700 20px "Chakra Petch", sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--ink); }
+
+  body.mode3d #objective { top: 86px; padding: 10px 16px 10px 12px; border-radius: 18px; gap: 12px;
+    border: 1px solid rgba(46, 230, 255, .32);
+    background: linear-gradient(120deg, rgba(13, 23, 48, .96), rgba(30, 12, 40, .9));
+    box-shadow: 0 16px 38px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .06); }
+  body.mode3d #objective .arrow { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(145deg, var(--accent-2), var(--accent));
+    color: #04101f; box-shadow: 0 0 22px rgba(46, 230, 255, .35); }
+  body.mode3d #objective small { color: var(--accent-2); font: 700 9px "Chakra Petch", sans-serif; letter-spacing: .24em; }
+  body.mode3d #objText { font: 700 15px "Chakra Petch", sans-serif; letter-spacing: .02em; }
+  body.mode3d #objText span { color: var(--muted); font: 500 13px Inter, sans-serif; }
+  body.mode3d #objective::before { content: "⬢"; width: auto; height: auto; order: 3; opacity: .8;
+    background: none; color: var(--accent-2); font-size: 16px; }
+
+  body.mode3d #useBtn3d { padding: 13px 20px; border-radius: 999px; border: 1px solid rgba(46, 230, 255, .55);
+    background: linear-gradient(120deg, rgba(46, 230, 255, .16), rgba(255, 79, 154, .2)); color: var(--ink);
+    font: 700 14px "Chakra Petch", sans-serif; letter-spacing: .04em; box-shadow: 0 12px 34px rgba(0, 0, 0, .45);
+    backdrop-filter: blur(10px); }
+  body.mode3d #useBtn3d span { color: var(--accent-2); font-size: 21px; }
+  body.mode3d #useBtn3d kbd { border: 1px solid rgba(46, 230, 255, .35); background: rgba(4, 10, 24, .9);
+    color: var(--accent-2); font-family: "Chakra Petch", monospace; }
+  body.mode3d #useBtn3d.on { border-color: var(--lime); color: #fff;
+    box-shadow: 0 0 30px rgba(184, 255, 90, .35), 0 12px 34px rgba(0, 0, 0, .45); animation: useGlow2 1.5s ease-in-out infinite; }
+  @keyframes useGlow2 {
+    50% { box-shadow: 0 0 46px rgba(184, 255, 90, .7), 0 12px 34px rgba(0, 0, 0, .45); }
+  }
+
+  body.mode3d .hs .dot { width: 58px; height: 58px; border-radius: 18px;
+    background: linear-gradient(145deg, rgba(46, 230, 255, .18), rgba(255, 79, 154, .14));
+    border: 2px solid var(--accent-2);
+    box-shadow: 0 0 0 5px rgba(46, 230, 255, .06), 0 14px 30px rgba(0, 0, 0, .5), inset 0 0 18px rgba(46, 230, 255, .18); }
+  body.mode3d .hs.item .dot { border-color: var(--accent); background: linear-gradient(145deg, rgba(255, 79, 154, .26), rgba(46, 230, 255, .12));
+    box-shadow: 0 0 0 5px rgba(255, 79, 154, .08), 0 14px 30px rgba(0, 0, 0, .5), inset 0 0 18px rgba(255, 79, 154, .2);
+    animation: beaconPulse 1.9s infinite; }
+  body.mode3d .hs.item.done .dot { border-color: var(--lime); background: linear-gradient(145deg, rgba(184, 255, 90, .22), rgba(46, 230, 255, .1)); animation: none; }
+  body.mode3d #markers .hs.item.inrange .dot { transform: scale(1.22);
+    box-shadow: 0 0 0 6px rgba(46, 230, 255, .25), 0 0 30px rgba(46, 230, 255, .7), inset 0 0 18px rgba(46, 230, 255, .18); }
+  body.mode3d .hs .lbl { padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(46, 230, 255, .28);
+    background: rgba(4, 9, 22, .9); font: 700 11px "Chakra Petch", sans-serif; letter-spacing: .07em; text-transform: uppercase;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+  body.mode3d .hs.item.done .lbl::after { content: " ✔"; color: var(--lime); }
+  body.mode3d .hs.item.hidden .dot { width: 16px; height: 16px; border: 0; border-radius: 50%; font-size: 0;
+    background: var(--accent-2); box-shadow: 0 0 14px 4px rgba(46, 230, 255, .75); animation: twinkle 2.2s infinite; }
+  body.mode3d .hs.item.hidden .lbl { opacity: 0; }
+  body.mode3d .hs.link .dot { border-color: var(--accent-2); background: rgba(46, 230, 255, .14); }
+  body.mode3d .hs.link.locked .dot { border-color: var(--gold); background: rgba(60, 40, 10, .8); }
+  body.mode3d .hs.link.locked .dot::before { content: "🔒"; font-size: 22px; }
+  body.mode3d .hs.link.locked .lbl { border-color: rgba(255, 209, 102, .35); color: var(--gold); }
+  @keyframes beaconPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 79, 154, .45), 0 14px 30px rgba(0, 0, 0, .5), inset 0 0 18px rgba(255, 79, 154, .2); }
+    70% { box-shadow: 0 0 0 16px rgba(255, 79, 154, 0), 0 14px 30px rgba(0, 0, 0, .5), inset 0 0 18px rgba(255, 79, 154, .2); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 79, 154, 0), 0 14px 30px rgba(0, 0, 0, .5), inset 0 0 18px rgba(255, 79, 154, .2); }
+  }
+
+  body.mode3d #bubble { border: 1px solid rgba(46, 230, 255, .38); color: var(--ink);
+    background: linear-gradient(180deg, #101d3a, #0a1226); border-radius: 18px 18px 18px 6px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, .5), 0 0 28px rgba(46, 230, 255, .08); font-size: 15px; }
+  body.mode3d #bubble .who { display: flex; align-items: center; gap: 6px; color: var(--accent-2);
+    font: 700 11px "Chakra Petch", sans-serif; letter-spacing: .18em; text-transform: uppercase; }
+  body.mode3d #bubble .who::after { content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--lime); box-shadow: 0 0 10px var(--lime); filter: none; }
+  body.mode3d #othy { filter: drop-shadow(0 10px 18px rgba(46, 230, 255, .2)); }
+
+  body.mode3d #modal { background: rgba(2, 5, 14, .72); backdrop-filter: blur(10px) saturate(1.1); }
+  body.mode3d .card { padding: 26px; border-radius: 24px; border: 1px solid rgba(46, 230, 255, .28);
+    background:
+      radial-gradient(120% 80% at 0% 0%, rgba(46, 230, 255, .13), transparent 55%),
+      radial-gradient(100% 70% at 100% 100%, rgba(255, 79, 154, .12), transparent 60%),
+      linear-gradient(180deg, #101c38, #080f22);
+    box-shadow: 0 0 0 1px rgba(255, 79, 154, .08), 0 30px 90px rgba(0, 0, 0, .7), 0 0 80px rgba(46, 230, 255, .06); }
+  body.mode3d .card::before { height: 6px; border-radius: 24px 24px 0 0; opacity: .95;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent), var(--lime)); }
+  body.mode3d .card::after { content: "01001111 01010100"; right: 18px; bottom: 8px; direction: ltr;
+    font: 600 11px ui-monospace, monospace; letter-spacing: .3em; color: rgba(46, 230, 255, .07); }
+  body.mode3d .card h1, body.mode3d .card h2 { font-family: "Chakra Petch", sans-serif; letter-spacing: .01em; }
+  body.mode3d .card h1 { color: var(--accent-2); }
+  body.mode3d .pz-head::after { content: "⬢"; width: auto; height: auto; opacity: .55;
+    background: none; color: var(--accent-2); font-size: 22px; }
+  body.mode3d .pz-badge { border-radius: 14px; background: linear-gradient(145deg, rgba(46, 230, 255, .16), rgba(255, 79, 154, .16));
+    box-shadow: inset 0 0 0 1px rgba(46, 230, 255, .4), 0 6px 16px rgba(0, 0, 0, .35); }
+  body.mode3d .pz-kicker, body.mode3d .eyebrow { color: var(--accent-2) !important; font-family: "Chakra Petch", sans-serif; letter-spacing: .16em; }
+  body.mode3d .task-card { position: relative; display: flex; gap: 12px; align-items: flex-start; margin: 8px 26px 12px; padding: 12px 14px;
+    border-radius: 14px; border: 1px solid rgba(184, 255, 90, .32);
+    background: linear-gradient(135deg, rgba(184, 255, 90, .1), rgba(46, 230, 255, .06));
+    box-shadow: inset 0 0 26px rgba(184, 255, 90, .05), 0 8px 20px rgba(0, 0, 0, .25); }
+  body.mode3d .task-card::before { content: "TASK"; position: absolute; top: 12px; right: 14px;
+    font: 700 9px "Chakra Petch", sans-serif; letter-spacing: .24em; color: rgba(184, 255, 90, .75); }
+  body.mode3d .task-card .task-avatar { flex: none; width: 44px; height: 44px; display: grid; place-items: center; font-size: 22px;
+    border-radius: 12px; background: linear-gradient(145deg, rgba(46, 230, 255, .2), rgba(255, 79, 154, .18));
+    box-shadow: inset 0 0 0 1px rgba(46, 230, 255, .4), 0 4px 12px rgba(0, 0, 0, .3); }
+  body.mode3d .task-card .task-who { display: block; font: 700 13px "Chakra Petch", sans-serif; letter-spacing: .04em; color: var(--accent-2); }
+  body.mode3d .task-card .task-sub { display: block; margin: 1px 0 4px; font: 700 9px "Chakra Petch", sans-serif;
+    letter-spacing: .2em; text-transform: uppercase; color: var(--lime); }
+  body.mode3d .task-card p { margin: 0 !important; font-size: 14px; line-height: 1.45; color: var(--ink); }
+  body.mode3d .btn { border-radius: 12px; border-color: rgba(46, 230, 255, .25); font-family: "Chakra Petch", sans-serif; letter-spacing: .02em; }
+  body.mode3d .btn.primary { border: 0; color: #04101f; background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    box-shadow: 0 10px 26px rgba(46, 230, 255, .22); }
+  body.mode3d .btn:hover { border-color: var(--accent-2); }
+  body.mode3d .hints { border-color: rgba(46, 230, 255, .22); }
+  body.mode3d .muted { color: var(--muted); }
+  body.mode3d .card[data-skin="glass"] .paper::before { border-radius: 12px; clip-path: none;
+    background: linear-gradient(145deg, var(--accent-2), #1b6f9a);
+    box-shadow: inset 0 0 0 2px rgba(4, 16, 31, .35), 0 4px 10px rgba(0, 0, 0, .4); }
+  body.mode3d .card > .actions:last-child, body.mode3d .card .win > .actions:last-child, body.mode3d .card .admin > .actions:last-child {
+    background: linear-gradient(to bottom, rgba(8, 15, 34, 0), #080f22 40%); }
+
+  body.mode3d .morse-table { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; margin: 10px 0 12px; }
+  body.mode3d .morse-table div { padding: 6px 4px; border-radius: 8px; text-align: center; background: rgba(255, 255, 255, .92);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .25), inset 0 1px 0 #fff; }
+  body.mode3d .morse-table b { display: block; color: #a3124a; font: 700 14px "Chakra Petch", sans-serif; }
+  body.mode3d .morse-table span { display: block; color: #2b1a2a; font: 700 13px ui-monospace, monospace; letter-spacing: .14em; }
+  body.mode3d .code-strip { display: block; margin: 10px 0 14px; padding: 18px 16px; border-radius: 12px; text-align: center;
+    border: 1px solid rgba(46, 230, 255, .35); background: #06101f; color: var(--accent-2);
+    font: 700 22px/1.5 ui-monospace, monospace; letter-spacing: .16em;
+    box-shadow: inset 0 0 30px rgba(46, 230, 255, .08), 0 8px 22px rgba(0, 0, 0, .4);
+    text-shadow: 0 0 12px rgba(46, 230, 255, .5); }
+
+  body.mode3d .chest { width: 340px; height: 216px; }
+  body.mode3d .chest-box { border-radius: 16px 16px 20px 20px; border: 2px solid rgba(46, 230, 255, .4);
+    background: linear-gradient(180deg, #16264a, #0a1226);
+    box-shadow: inset 0 0 0 4px #071022, inset 0 0 40px rgba(46, 230, 255, .12), 0 18px 40px rgba(0, 0, 0, .6); }
+  body.mode3d .chest-box::before, body.mode3d .chest-box::after { background: linear-gradient(180deg, var(--accent), #8a1d4e);
+    box-shadow: inset 0 0 0 1px #3a0d22, 0 0 12px rgba(255, 79, 154, .3); }
+  body.mode3d .chest-lid { border-radius: 26px 26px 10px 10px; border: 2px solid rgba(255, 79, 154, .35);
+    background: linear-gradient(180deg, #1d3157, #0d1730);
+    box-shadow: inset 0 0 0 4px #071022, 0 -4px 14px rgba(0, 0, 0, .4); }
+  body.mode3d .core-plate { position: relative; width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(145deg, var(--accent-2), var(--accent));
+    box-shadow: 0 0 24px rgba(46, 230, 255, .5), inset 0 0 0 3px rgba(4, 16, 31, .35); }
+  body.mode3d .core-plate::after { content: "⬢"; position: absolute; inset: 0; display: grid; place-items: center;
+    color: #04101f; font-size: 24px; }
+  body.mode3d .slot { border-radius: 8px; border: 1px dashed rgba(46, 230, 255, .45); background: rgba(3, 8, 20, .85);
+    clip-path: none; box-shadow: inset 0 4px 10px rgba(0, 0, 0, .7); }
+  body.mode3d .shard { border-radius: 10px; clip-path: none; color: #04101f;
+    background: linear-gradient(145deg, var(--accent-2), #1b6f9a);
+    box-shadow: 0 0 18px rgba(46, 230, 255, .25), inset 0 1px 0 rgba(255, 255, 255, .4); }
+  body.mode3d .shard .chip-letter { font: 700 15px "Chakra Petch", sans-serif; }
+  body.mode3d .shard b { font: 700 11px "Chakra Petch", monospace; }
+  body.mode3d .shard .chip-letter { display: block; font: 700 15px "Chakra Petch", sans-serif; }
+  body.mode3d .seal.chip-seal { font-family: "Chakra Petch", sans-serif; font-weight: 700; letter-spacing: .3em;
+    color: var(--accent-2) !important; direction: ltr; unicode-bidi: normal; text-shadow: 0 0 22px rgba(46, 230, 255, .55); }
+  body.mode3d .newfrag { width: 58px; height: 58px; border: 0; border-radius: 16px; clip-path: none; color: #04101f;
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(145deg, var(--accent-2), var(--accent)); box-shadow: 0 0 30px rgba(46, 230, 255, .4); }
+  body.mode3d .newfrag .chip-letter { font: 700 22px "Chakra Petch", sans-serif; }
+
+  body.mode3d #splash { background: radial-gradient(ellipse at 50% 30%, #16244a 0%, #060a17 68%); }
+  body.mode3d #splash::before { opacity: 1;
+    background-image: linear-gradient(rgba(46, 230, 255, .06) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(46, 230, 255, .06) 1px, transparent 1px);
+    background-size: 44px 44px; }
+  body.mode3d .splash-in h1 { font-family: "Chakra Petch", sans-serif; font-size: 36px; letter-spacing: .02em; }
+  body.mode3d .splash-in h1 b { color: var(--accent-2); }
+  body.mode3d .splash-tag { margin: 4px 0 2px; color: var(--accent); font: 700 11px "Chakra Petch", sans-serif; letter-spacing: .3em; }
+  body.mode3d .splash-in img { background: #fff; box-shadow: 0 0 0 4px var(--accent-2), 0 0 70px rgba(46, 230, 255, .45); }
+  body.mode3d .splash-bar { background: rgba(255, 255, 255, .08); }
+  body.mode3d .splash-bar i { background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+
+  body.mode3d .hero img { box-shadow: 0 0 0 3px var(--accent-2), 0 0 34px rgba(46, 230, 255, .4); }
+  body.mode3d .chip-row { display: flex; justify-content: center; gap: 8px; margin: 10px 0 4px; }
+  body.mode3d .chip-row i { width: 18px; height: 18px; border-radius: 5px; transform: rotate(6deg);
+    background: linear-gradient(145deg, var(--accent-2), var(--accent)); box-shadow: 0 0 14px rgba(46, 230, 255, .5); }
+  body.mode3d .chip-row i:nth-child(even) { transform: rotate(-6deg); }
+
+  body.mode3d .openday { margin: 16px 26px 0; }
+  body.mode3d .team-field span { color: var(--accent-2); font-family: "Chakra Petch", sans-serif; }
+  body.mode3d .team-field input { border-radius: 12px; border-color: rgba(46, 230, 255, .35); background: #071022; }
+  body.mode3d .mode { border-radius: 14px; background: rgba(255, 255, 255, .03); }
+  body.mode3d .mode.on { border-color: var(--accent-2); background: linear-gradient(180deg, rgba(46, 230, 255, .16), rgba(255, 79, 154, .08));
+    box-shadow: 0 0 18px rgba(46, 230, 255, .18); }
+  body.mode3d .lb-wrap { background: rgba(255, 255, 255, .03); border-color: var(--line); }
+  body.mode3d .kicker-lb { color: var(--accent-2); }
+  body.mode3d .lb td:nth-child(3) { color: var(--accent-2); }
+  body.mode3d .rank-badge { border-color: rgba(46, 230, 255, .35);
+    background: linear-gradient(90deg, rgba(46, 230, 255, .14), rgba(255, 79, 154, .14)); }
+  body.mode3d .rank-badge b { color: var(--accent-2); }
+  body.mode3d #teamTag { background: rgba(13, 23, 48, .85); border-color: var(--line); }
+  body.mode3d #toast { border-color: rgba(46, 230, 255, .35); border-radius: 12px;
+    background: linear-gradient(180deg, #101d3a, #0a1226); font-family: "Chakra Petch", sans-serif; }
+  body.mode3d #loading { top: 116px; border-color: rgba(46, 230, 255, .35);
+    background: linear-gradient(180deg, rgba(13, 23, 48, .92), rgba(6, 10, 23, .92)); }
+
+  @media (max-width: 900px) {
+    body.mode3d .hud { padding: 10px; gap: 8px; flex-wrap: wrap; }
+    body.mode3d .hud-left { padding: 8px 10px; }
+    body.mode3d .hud-right { padding: 6px 8px; gap: 6px; }
+    body.mode3d .brand span { font-size: 14px; }
+    body.mode3d .brand img { width: 34px; height: 34px; }
+    body.mode3d .room { display: none; }
+    body.mode3d #fragments { gap: 4px; }
+    body.mode3d .frag { width: 36px; height: 38px; }
+    body.mode3d .frag .chip-letter { font-size: 14px; }
+    body.mode3d #timer { min-width: 78px; padding: 8px 10px; font-size: 18px; }
+    body.mode3d .iconbtn { width: 34px; height: 34px; }
+    body.mode3d #objective { top: 118px; }
+    body.mode3d #roomBanner { top: 180px; padding: 8px 16px; }
+    body.mode3d #roomBanner b { font-size: 17px; }
+    body.mode3d .code-strip { font-size: 17px; letter-spacing: .1em; }
+  }
+  @media (max-width: 600px) {
+    body.mode3d .hud-right { flex-wrap: wrap; justify-content: flex-end; }
+    body.mode3d #fragments { order: 2; }
+    body.mode3d #timer { order: 1; }
+    body.mode3d .hud-actions { order: 3; }
+    body.mode3d #objective { top: 150px; padding: 8px 12px; }
+    body.mode3d #objText { font-size: 13px; }
+    body.mode3d #roomBanner { top: 208px; }
+    body.mode3d .card { padding: 18px; }
+    body.mode3d .morse-table { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); }
+  }
 </style>
 </head>
-<body>
+<body class="mode3d">
   <div id="splash"><div class="splash-in">
     <img src="lib/img/logoOthoca.png" alt="Logo Othoca">
-    <h1>Il sigillo di <b>Othoca</b></h1>
-    <div class="phn">𐤀𐤁𐤂𐤃𐤄𐤅</div>
+    <h1>Il codice di <b>Othoca</b></h1>
+    <div class="splash-tag">ROBOT · CHIP · LABORATORI</div>
     <div class="splash-bar"><i id="splashBar"></i></div>
     <div id="splashText">Carico le foto della scuola…</div>
   </div></div>
@@ -673,18 +960,23 @@
   <div id="loading">Caricamento foto…</div>
 
   <header class="hud">
-    <div>
-      <div class="brand"><img src="lib/img/logoOthoca.png" alt=""><span>Il sigillo di <b>Othoca</b></span></div>
+    <div class="hud-left">
+      <div class="brand"><img src="lib/img/logoOthoca.png" alt=""><span>Il codice di <b>Othoca</b></span></div>
       <div class="room" id="roomName"></div>
     </div>
     <div class="spacer"></div>
-    <div id="fragments" aria-label="Frammenti del sigillo"></div>
-    <div id="timer" aria-label="Tempo rimasto">35:00</div>
-    <button class="iconbtn" id="muteBtn" title="Audio">🔊</button>
-    <button class="iconbtn" id="fsBtn" title="Schermo intero" aria-label="Schermo intero">⛶</button>
-    <button class="iconbtn" id="introBtn" title="Rileggi la storia" aria-label="Rileggi la storia">📖</button>
-    <button class="iconbtn" id="resetBtn" title="Ricomincia" aria-label="Ricomincia">↺</button>
+    <div class="hud-right">
+      <div id="fragments" aria-label="Chip della memoria"></div>
+      <div id="timer" aria-label="Tempo rimasto">10:00</div>
+      <div class="hud-actions">
+        <button class="iconbtn" id="muteBtn" title="Audio">🔊</button>
+        <button class="iconbtn" id="fsBtn" title="Schermo intero" aria-label="Schermo intero">⛶</button>
+        <button class="iconbtn" id="introBtn" title="Rileggi la storia" aria-label="Rileggi la storia">📖</button>
+        <button class="iconbtn" id="resetBtn" title="Ricomincia" aria-label="Ricomincia">↺</button>
+      </div>
+    </div>
   </header>
+  <div id="roomBanner"><small>STANZA</small><b></b></div>
 
 
   <div id="fade"></div>
@@ -709,16 +1001,17 @@
         <!-- collo a S -->
         <path d="M53 86 C38 76 36 60 48 50 C58 42 60 34 55 28" stroke="#a3124a" stroke-width="13.5" fill="none" stroke-linecap="round"/>
         <path d="M53 86 C38 76 36 60 48 50 C58 42 60 34 55 28" stroke="#f5739f" stroke-width="10.5" fill="none" stroke-linecap="round"/>
-        <!-- collana con il segno di Tanit -->
-        <path d="M42 68 q9 7 18 2" stroke="#e0a83f" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-        <g transform="translate(51 78)" fill="#f2c063" stroke="#7a4a10" stroke-width=".9">
-          <circle cx="0" cy="-4.5" r="2.6"/><path d="M-6 -1.4 h12 v1.8 h-12z"/><path d="M-3 .4 L3 .4 L5.5 9 L-5.5 9 Z"/>
+        <!-- chip sul petto: Othy è un robot -->
+        <g transform="translate(58 82)">
+          <rect width="20" height="14" rx="3" fill="#2ee6ff" stroke="#0b6f88" stroke-width="1.2"/>
+          <path d="M4 4h12M4 7h8M4 10h12" stroke="#0b3b4a" stroke-width="1" stroke-linecap="round"/>
         </g>
         <!-- testa -->
         <circle cx="54" cy="24" r="15.5" fill="#f5739f" stroke="#a3124a" stroke-width="2"/>
-        <!-- fascia punica dorata con greca -->
-        <path d="M39.5 17 q14.5 -9.5 29 0" stroke="#e0a83f" stroke-width="4.5" fill="none" stroke-linecap="round"/>
-        <path d="M43 14.5 l3 -2.5 3 2.5 3 -2.5 3 2.5 3 -2.5 3 2.5" stroke="#7a4a10" stroke-width="1" fill="none"/>
+        <!-- cuffie da robot -->
+        <path d="M40 22 q14 -17 28 0" fill="none" stroke="#2ee6ff" stroke-width="3.2" stroke-linecap="round"/>
+        <rect x="37" y="19" width="6" height="12" rx="3" fill="#2ee6ff" stroke="#0b6f88" stroke-width="1"/>
+        <rect x="65" y="19" width="6" height="12" rx="3" fill="#2ee6ff" stroke="#0b6f88" stroke-width="1"/>
         <!-- sopracciglio pensieroso -->
         <g class="brows-think" stroke="#5a0f2c" stroke-width="2.4" stroke-linecap="round"><path d="M45 13.5 l9 -2.5"/></g>
         <!-- occhio (come nel logo Othoca) -->
@@ -746,8 +1039,8 @@
   <div id="modal" hidden><div class="card" id="modalBody" role="dialog" aria-modal="true"></div></div>
   <div id="toast" role="status"></div>
   <div class="controls-tip"><kbd>W</kbd><kbd>S</kbd> cammina · <kbd>A</kbd><kbd>D</kbd> gira · <kbd>Shift</kbd> corri · <kbd>E</kbd> usa</div>
-  <div id="objective"><div class="arrow" id="objArrow">➤</div><div><small>Obiettivo</small><div id="objText">…</div></div></div>
-  <button type="button" id="useBtn3d"><span>✋</span><b>Avvicinati a un oggetto</b><kbd>E</kbd></button>
+  <div id="objective"><div class="arrow" id="objArrow">➤</div><div><small>Missione</small><div id="objText">…</div></div></div>
+  <button type="button" id="useBtn3d"><span>⬡</span><b>Avvicinati a un oggetto</b><kbd>E</kbd></button>
   <div id="dpad" aria-label="Muovi il robot">
     <button type="button" data-k="f" aria-label="Avanti">▲</button>
     <button type="button" data-k="l" aria-label="Gira a sinistra">↺</button>

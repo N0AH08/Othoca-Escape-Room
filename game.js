@@ -17,6 +17,8 @@
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
     if (saved && Array.isArray(saved.solved)) state = Object.assign(fresh(), saved);
   } catch (e) { /* storage non disponibile: si gioca senza salvataggio */ }
+  // partite salvate con le vecchie modalità: riportale alla partita unica da 10 minuti
+  if (!GAME.modes || !GAME.modes[state.mode]) state.mode = GAME.defaultMode || null;
   const save = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} };
   if (!state.seed) { state.seed = Math.floor(Math.random() * 2147483647); save(); }
 
@@ -43,7 +45,7 @@
       if (render[id]) Object.assign(out[id], render[id](out[id], v));
     }
     for (const [id, fn] of Object.entries(render)) if (!variants[id] && out[id]) Object.assign(out[id], fn(out[id], ctx));
-    // codice finale: cifre dei frammenti nell'ordine dell'alfabeto fenicio
+    // codice finale: cifre dei chip nell'ordine alfabetico A, B, C, D
     const frags = Object.values(out).filter((p) => p.reward && p.reward.fragment).map((p) => p.reward.fragment)
       .sort((a, b) => a.symbol.codePointAt(0) - b.symbol.codePointAt(0));
     const fin = Object.values(out).find((p) => p.final);
@@ -253,10 +255,19 @@
     return sc.startYaw || 0;
   }
 
+  let roomBannerT = null;
+  function showRoomBanner(name) {
+    const b = document.getElementById("roomBanner");
+    if (!b) return;
+    b.querySelector("b").textContent = name;
+    b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
+    clearTimeout(roomBannerT);
+    roomBannerT = setTimeout(() => b.classList.remove("show"), 2400);
+  }
   function enterScene(id, fromId, opts) {
     const s = scenes[id];
     if (!s) return;
-    if (MODE3D) { state.scene = id; save(); $("#roomName").textContent = s.data.name; return; }
+    if (MODE3D) { state.scene = id; save(); $("#roomName").textContent = s.data.name; showRoomBanner(s.data.name); return; }
     if (opts) s.view.setParameters({ yaw: opts.yaw, pitch: opts.pitch, fov: opts.fov });
     else s.view.setParameters({ yaw: fromId ? (s.data.enterYaw ?? enterYaw(s.data, fromId)) : (s.data.startYaw || 0), pitch: fromId ? 0 : (s.data.startPitch || 0), fov: FOV_NORMAL });
     s.scene.switchTo({ transitionDuration: opts ? opts.duration : fromId ? 350 : 0 });
@@ -378,8 +389,8 @@
     $("#timer").classList.toggle("warn", r < 180);
     if (r <= 0 && !state.end && !timeUpShown && state.start) {
       timeUpShown = true;
-      showModal(`<h2>⏰ Tempo scaduto!</h2><p>Il custode sta chiudendo… Potete finire la partita, ma senza punti per la classifica.</p>
-        <div class="actions"><button class="btn" id="nextTeam">Prossima squadra</button><button class="btn primary" data-close>Continua a giocare</button></div>`,
+      showModal(`<h2>⏰ Tempo scaduto!</h2><p>Il custode sta chiudendo… Puoi finire la partita, ma senza punti per la classifica.</p>
+        <div class="actions"><button class="btn" id="nextTeam">Prossimo giocatore</button><button class="btn primary" data-close>Continua a giocare</button></div>`,
         (root) => root.querySelector("#nextTeam").addEventListener("click", reset));
     }
   }
@@ -399,8 +410,8 @@
       const d = document.createElement("div");
       const got = isSolved(id);
       d.className = "frag" + (got ? " got" : "") + (id === lastGot ? " new" : "");
-      d.title = got ? "Frammento trovato" : "Frammento mancante";
-      d.innerHTML = got ? `<span class="phn">${p.reward.fragment.symbol}</span><b>${p.reward.fragment.digit}</b>` : `<span>?</span>`;
+      d.title = got ? "Chip trovato" : "Chip mancante";
+      d.innerHTML = got ? `<span class="chip-letter">${p.reward.fragment.symbol}</span><b>${p.reward.fragment.digit}</b>` : `<span class="chip-q">?</span>`;
       box.appendChild(d);
     });
   }
@@ -418,7 +429,11 @@
     const f = modalBody.querySelector("input,button.primary");
     if (f && matchMedia("(pointer:fine)").matches) setTimeout(() => f.focus(), 50);
   }
-  function closeModal() { modal.hidden = true; if (state.start) stepBack(); guide.flush(); }
+  function closeModal() {
+    // se il focus resta su un campo del riquadro appena chiuso, WASD e "E" sarebbero bloccati
+    if (modal.contains(document.activeElement)) document.activeElement.blur();
+    modal.hidden = true; if (state.start) stepBack(); guide.flush();
+  }
   modal.addEventListener("click", (e) => { if (e.target === modal && state.start) closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden && state.start) closeModal(); });
 
@@ -456,13 +471,22 @@
     render();
   }
 
+  const profOf = (it) => (it && (it.prof || (GAME.profs && GAME.profs[it.puzzle]))) || null;
+  const profDel = (prof) => (/ssa\b/i.test(prof.short || prof.name || "") ? "della" : "del");
   function puzzleHead(id, p) {
     // la stanza è quella dell'oggetto (nel percorso continuo il robot può essere vicino al confine tra due foto)
     const sc = GAME.scenes.find((x) => (x.items || []).some((i) => i.puzzle === id)) || current().data;
     const it = sc.items.find((i) => i.puzzle === id);
+    const prof = profOf(it);
     const kind = p.type === "info" ? "Indizio" : p.final ? "Enigma finale" : "Enigma";
+    const kicker = prof ? `Task ${profDel(prof)} ${prof.short || prof.name} · ${prof.subject}` : `${kind} · ${sc.name}`;
     return `<header class="pz-head"><div class="pz-badge">${(it && it.icon) || "✨"}</div>
-      <div><p class="pz-kicker">${kind} · ${sc.name}</p><h2>${p.title}</h2></div></header>`;
+      <div><p class="pz-kicker">${kicker}</p><h2>${p.title}</h2></div></header>`;
+  }
+  function taskHtml(prof) {
+    return `<div class="task-card"><div class="task-avatar">${prof.icon || "👨‍🏫"}</div>
+      <div><span class="task-who">${prof.name}</span><span class="task-sub">${prof.subject}</span>
+      <p>«${prof.task}»</p></div></div>`;
   }
 
   // Lucchetto: tastierino per i numeri, caselle per le parole
@@ -515,7 +539,8 @@
     if (!p) return;
     const solved = isSolved(id);
     nextSkin = p.skin || null;
-    let html = `${puzzleHead(id, p)}<div class="pz-body">${p.body}`;
+    const prof = profOf((GAME.scenes.find((x) => (x.items || []).some((i) => i.puzzle === id)) || current().data).items.find((i) => i.puzzle === id));
+    let html = `${puzzleHead(id, p)}${prof ? taskHtml(prof) : ""}<div class="pz-body">${p.body}`;
     if (p.caesar) html += caesarHtml(p.caesar);
 
     if (p.type === "info") {
@@ -544,10 +569,10 @@
     if (p.type === "chest") {
       const all = fragPuzzles(), got = all.filter(([fid]) => isSolved(fid)).map(([, q]) => q.reward.fragment);
       const mix = got.slice(); for (let i = mix.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [mix[i], mix[j]] = [mix[j], mix[i]]; }
-      html += `<div class="chest"><div class="chest-glow"></div><div class="chest-lid"><i class="tanit-plate"></i></div>
+      html += `<div class="chest"><div class="chest-glow"></div><div class="chest-lid"><i class="core-plate"></i></div>
           <div class="chest-box"><div class="slots">${all.map((_, i) => `<div class="slot" data-i="${i}"></div>`).join("")}</div></div></div>
-        <div class="shards">${mix.map((f) => `<button type="button" class="shard" data-s="${f.symbol}"><span class="phn">${f.symbol}</span><b>${f.digit}</b></button>`).join("")}</div>
-        <p class="feedback" aria-live="polite">${got.length < all.length ? `Ti mancano ancora ${all.length - got.length} frammenti: cercali lungo il percorso!` : ""}</p>`;
+        <div class="shards">${mix.map((f) => `<button type="button" class="shard" data-s="${f.symbol}"><span class="${MODE3D ? "chip-letter" : "phn"}">${f.symbol}</span><b>${f.digit}</b></button>`).join("")}</div>
+        <p class="feedback" aria-live="polite">${got.length < all.length ? `Ti mancano ancora ${all.length - got.length} ${MODE3D ? "chip" : "frammenti"}: cercali lungo il percorso!` : ""}</p>`;
     }
     if (p.type === "simon") {
       html += `<div class="simon">
@@ -602,7 +627,7 @@
     });
   }
 
-  // Cassa finale: si inseriscono i cocci nelle conche nell'ordine dell'alfabeto fenicio
+  // Nucleo finale: si inseriscono i chip negli slot in ordine alfabetico
   function bindChest(root, id, fb) {
     const slots = [...root.querySelectorAll(".slot")], shards = [...root.querySelectorAll(".shard")];
     const order = fragPuzzles().map(([, q]) => q.reward.fragment.symbol).sort((a, b) => a.codePointAt(0) - b.codePointAt(0));
@@ -614,7 +639,7 @@
       if (placed.length < slots.length) return;
       busy = true;
       if (placed.every((s, i) => s === order[i])) {
-        fb.className = "feedback ok"; fb.textContent = "Clic! I cocci combaciano…";
+        fb.className = "feedback ok"; fb.textContent = "Clic! I chip entrano negli slot…";
         setTimeout(() => { root.querySelector(".chest").classList.add("open"); sfx.ok(); }, 500);
         setTimeout(() => solve(id), 2300);
       } else {
@@ -686,17 +711,19 @@
   function solve(id) {
     const p = GAME.puzzles[id];
     if (!isSolved(id)) state.solved.push(id);
-    if (p.final || p.endsGame) { state.end = Date.now(); save(); refreshHotspots(); sfx.win(); if (avatar()) avatar().emote("Dance", 3); guide.say("Ce l'avete fatta! Il sigillo è salvo. Grazie, amici!", "happy"); return win(); }
+    if (p.final || p.endsGame) { state.end = Date.now(); save(); refreshHotspots(); sfx.win(); if (avatar()) avatar().emote("Dance", 3); guide.say("Ce l'hai fatta! Othy è tornato online. Grazie per il tuo aiuto!", "happy"); return win(); }
     lastGot = p.reward && p.reward.fragment ? id : null;
     save(); renderFragments(); refreshHotspots(); sfx.ok();
     if (avatar()) avatar().emote(p.reward.fragment ? "ThumbsUp" : "Yes");
     const frag = p.reward.fragment
-      ? `<div class="newfrag"><span class="phn">${p.reward.fragment.symbol}</span><b>${p.reward.fragment.digit}</b></div><p class="center big-ok">Hai trovato un frammento del sigillo!</p>` : `<div class="unlock-ico">🔓</div>`;
+      ? `<div class="newfrag"><span class="chip-letter">${p.reward.fragment.symbol}</span><b>${p.reward.fragment.digit}</b></div><p class="center big-ok">Hai trovato un chip della memoria!</p>` : `<div class="unlock-ico">🔓</div>`;
     const got = fragPuzzles().filter(([x]) => state.solved.includes(x)).length;
     const tot = fragPuzzles().length;
+    const sc = GAME.scenes.find((x) => (x.items || []).some((i) => i.puzzle === id)) || current().data;
+    const prof = profOf(sc.items.find((i) => i.puzzle === id));
     showModal(`<div class="success"><div class="confetti">${Array.from({ length: 18 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div>
-      <p class="pz-kicker center">Enigma risolto · ${current().data.name}</p><h2 class="center">${p.title}</h2>${frag}
-      <p class="center">${p.reward.text}</p>${p.reward.fragment ? `<p class="center muted">Frammenti: ${got} di ${tot}</p>` : ""}
+      <p class="pz-kicker center">${prof ? `Task completato · ${prof.short || prof.name}` : `Enigma risolto · ${sc.name}`}</p><h2 class="center">${p.title}</h2>${frag}
+      <p class="center">${p.reward.text}</p>${p.reward.fragment ? `<p class="center muted">${MODE3D ? "Chip" : "Frammenti"}: ${got} di ${tot}</p>` : ""}
       <div class="actions center"><button class="btn primary big" data-close>Avanti</button></div></div>`);
     if (p.reward.say) guide.say(p.reward.say, "happy");
   }
@@ -709,12 +736,12 @@
   function rankedLB(modeKey) { return loadLB().filter((e) => e.mode === modeKey).sort((a, b) => b.score - a.score || a.time - b.time); }
   function lbHtml(modeKey, highlightId, n = 8) {
     const list = rankedLB(modeKey);
-    if (!list.length) return `<div class="lb-empty">Nessuna squadra in classifica: sarete i primi!</div>`;
+    if (!list.length) return `<div class="lb-empty">Nessun giocatore in classifica: sarai il primo!</div>`;
     const medal = (i) => ["🥇", "🥈", "🥉"][i] || `${i + 1}°`;
     let rows = list.slice(0, n).map((e, i) => `<tr class="${e.id === highlightId ? "me" : ""}"><td>${medal(i)}</td><td>${esc(e.team)}</td><td>${e.score}</td><td>${fmt(e.time)}</td><td>${e.hints}</td></tr>`).join("");
     const myIdx = list.findIndex((e) => e.id === highlightId);
     if (myIdx >= n) { const e = list[myIdx]; rows += `<tr class="me"><td>${myIdx + 1}°</td><td>${esc(e.team)}</td><td>${e.score}</td><td>${fmt(e.time)}</td><td>${e.hints}</td></tr>`; }
-    return `<table class="lb"><thead><tr><th></th><th>Squadra</th><th>Punti</th><th>Tempo</th><th>💡</th></tr></thead><tbody>${rows}</tbody></table>`;
+    return `<table class="lb"><thead><tr><th></th><th>Giocatore</th><th>Punti</th><th>Tempo</th><th>💡</th></tr></thead><tbody>${rows}</tbody></table>`;
   }
   let idleTimer = null;
   function armIdleReturn() {
@@ -728,27 +755,28 @@
     const r = remaining();
     const id = `${state.seed}-${state.start}`;
     let lb = loadLB();
-    if (!lb.some((e) => e.id === id)) { lb.push({ id, team: state.team || "Squadra", mode: state.mode || Object.keys(MODES)[0], score: Math.max(0, r), time: used, hints: hintsUsed(), date: Date.now() }); saveLB(lb); }
+    if (!lb.some((e) => e.id === id)) { lb.push({ id, team: state.team || "Giocatore", mode: state.mode || Object.keys(MODES)[0], score: Math.max(0, r), time: used, hints: hintsUsed(), date: Date.now() }); saveLB(lb); }
     const ranked = rankedLB(state.mode || Object.keys(MODES)[0]), pos = ranked.findIndex((e) => e.id === id) + 1;
     armIdleReturn();
     showModal(`<div class="win">${heroHtml()}
-      <p class="eyebrow center">Squadra ${esc(state.team || "")} · partita ${mode().name.toLowerCase()}</p>
-      <div class="seal phn">${fragPuzzles().map(([, q]) => q.reward.fragment.symbol).sort().join("")}</div>
-      <h2>${GAME.winTitle || "Il sigillo è salvo!"}</h2>${GAME.outro}
+      <p class="eyebrow center">Giocatore ${esc(state.team || "")} · partita ${mode().name.toLowerCase()}</p>
+      <div class="seal ${MODE3D ? "chip-seal" : "phn"}">${fragPuzzles().map(([, q]) => q.reward.fragment.symbol).sort().join("")}</div>
+      <h2>${GAME.winTitle || "Othy è tornato online!"}</h2>${GAME.outro}
       <dl class="stats">
         <div><dt>Tempo impiegato</dt><dd>${fmt(used)}</dd></div>
         <div><dt>Indizi usati</dt><dd>${hintsUsed()}</dd></div>
         <div><dt>Punteggio</dt><dd>${Math.max(0, r)}</dd></div>
       </dl>
-      <div class="rank-badge">${r > 0 ? `Siete al <b>${pos}° posto</b> su ${ranked.length} nella classifica ${mode().name.toLowerCase()}!` : "Avete finito fuori tempo: niente punti, ma il sigillo è salvo!"}</div>
+      <div class="rank-badge">${r > 0 ? `Sei al <b>${pos}° posto</b> su ${ranked.length} nella classifica ${mode().name.toLowerCase()}!` : "Hai finito fuori tempo: niente punti, ma la memoria di Othy è al sicuro!"}</div>
       ${lbHtml(state.mode || Object.keys(MODES)[0], id)}
-      <div class="actions"><button class="btn" data-close>Guarda in giro</button><button class="btn primary" id="again">Prossima squadra ➜</button></div>
+      <div class="actions"><button class="btn" data-close>Guarda in giro</button><button class="btn primary" id="again">Prossimo giocatore ➜</button></div>
     </div>`, (root) => root.querySelector("#again").addEventListener("click", reset));
   }
   function reset() {
     clearTimeout(idleTimer);
     const muted = state.muted, lastMode = state.mode;
     state = fresh(); state.muted = muted; state.mode = lastMode || state.mode; save(); timeUpShown = false;
+    lastGot = null;
     renderTeam();
     applyVariants(state.seed);
     guide.hide(); renderFragments(); enterScene(GAME.startScene);
@@ -764,10 +792,10 @@
     let sel = state.mode && MODES[state.mode] ? state.mode : modeKeys[0];
     const teamsSoFar = loadLB().length;
     showModal(`${heroHtml()}<p class="eyebrow">Escape room · ITIS Othoca · Open Day</p><h1>${GAME.title}</h1>
-      <div class="tanit-row"><i></i><i></i><i></i></div>${GAME.intro}
+      <div class="chip-row"><i></i><i></i><i></i><i></i></div>${GAME.intro}
       <div class="openday">
-        <label class="team-field"><span>Nome della squadra</span>
-          <input id="teamName" maxlength="24" placeholder="Squadra ${teamsSoFar + 1}" value="${esc(state.team || "")}" autocomplete="off"></label>
+        <label class="team-field"><span>Il tuo nome</span>
+          <input id="teamName" maxlength="24" placeholder="Giocatore ${teamsSoFar + 1}" value="${esc(state.team || "")}" autocomplete="off"></label>
         ${modeKeys.length > 1 ? `<div class="modes">${modeKeys.map((k) => `<button type="button" class="mode${k === sel ? " on" : ""}" data-mode="${k}"><b>${MODES[k].name}</b><span>${MODES[k].desc || MODES[k].minutes + " minuti"}</span></button>`).join("")}</div>` : ""}
         <div class="lb-wrap"><p class="kicker-lb">🏆 Classifica <span id="lbMode">${MODES[sel].name.toLowerCase()}</span></p><div id="lbBox">${lbHtml(sel, null, 5)}</div></div>
       </div>
@@ -786,15 +814,16 @@
         if (!state.start) { state.start = Date.now(); }
         save(); renderTeam();
         audio(); closeModal(); tick(); greet();
+        if (MODE3D && current()) showRoomBanner(current().data.name);
         if (avatar()) setTimeout(() => avatar().emote("Wave"), 400);
       });
     });
   }
 
-  // nome della squadra nella barra in alto
+  // nome del giocatore nella barra in alto
   const teamTag = document.createElement("div"); teamTag.id = "teamTag";
   const timerEl = $("#timer"); if (timerEl) timerEl.parentNode.insertBefore(teamTag, timerEl);
-  function renderTeam() { teamTag.textContent = state.team ? `👥 ${state.team}` : ""; teamTag.hidden = !state.team; }
+  function renderTeam() { teamTag.textContent = state.team ? `👤 ${state.team}` : ""; teamTag.hidden = !state.team; }
   renderTeam();
 
   // ---------- Pannello del gestore (Ctrl+Shift+G oppure 5 tocchi sul logo) ----------
@@ -821,7 +850,7 @@
     }
     const nu = nextUnsolved();
     showModal(`<div class="admin"><p class="eyebrow">Solo per chi gestisce il gioco</p><h2>🔧 Pannello del gestore</h2>
-      <div class="admin-state">Squadra: <b>${esc(state.team || "—")}</b> · Partita: <b>${mode().name}</b> · Tempo: <b>${fmt(remaining())}</b> · Indizi: <b>${hintsUsed()}</b></div>
+      <div class="admin-state">Giocatore: <b>${esc(state.team || "—")}</b> · Partita: <b>${mode().name}</b> · Tempo: <b>${fmt(remaining())}</b> · Indizi: <b>${hintsUsed()}</b></div>
       <table class="sol"><thead><tr><th>Dove</th><th>Oggetto</th><th>Soluzione di questa partita</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table>
       <div class="admin-actions">
         <button class="btn" id="aSolve" ${nu ? "" : "disabled"}>⏭️ Risolvi l'enigma attuale${nu ? ` (${esc(GAME.puzzles[nu].title)})` : ""}</button>
@@ -835,7 +864,7 @@
       root.querySelector("#aSolve").addEventListener("click", () => { const id = nextUnsolved(); if (id) { closeModal(); setTimeout(() => solve(id), 150); } });
       root.querySelector("#aNew").addEventListener("click", reset);
       root.querySelector("#aCsv").addEventListener("click", () => {
-        const lines = [["posizione", "squadra", "partita", "punti", "tempo", "indizi", "data"]];
+        const lines = [["posizione", "giocatore", "partita", "punti", "tempo", "indizi", "data"]];
         for (const k of Object.keys(MODES)) rankedLB(k).forEach((e, i) => lines.push([i + 1, e.team, MODES[k].name, e.score, fmt(e.time), e.hints, new Date(e.date).toLocaleString("it-IT")]));
         const csv = lines.map((l) => l.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
         const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv" })); a.download = "classifica-othoca.csv"; a.click();
@@ -865,7 +894,7 @@
 
   // ---------- Pulsanti in alto ----------
   $("#resetBtn").addEventListener("click", () => {
-    showModal(`<h2>Nuova partita?</h2><p>Si perdono i frammenti trovati e il timer riparte da capo.</p>
+    showModal(`<h2>Nuova partita?</h2><p>Si perdono ${MODE3D ? "i chip" : "i frammenti"} trovati e il timer riparte da capo.</p>
       <div class="actions"><button class="btn" data-close>Annulla</button><button class="btn primary" id="yesReset">Ricomincia</button></div>`,
       (root) => root.querySelector("#yesReset").addEventListener("click", reset));
   });

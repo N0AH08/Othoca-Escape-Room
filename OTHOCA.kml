@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:ex="http://earth.google.com/kml/ext">
+<Document id="15zYV8-8cnp4cyNYHXeVLaC5AkBUI9CqD">
+	<ex:extension>base64;Co4BCoEBCn8KAggBEnkKdwokCiAKAwjQDxoHCNLtZRD_ASEAAAAAAADwPykAAAAAAAAAABgAEg8KCAitgO8HEP8BEKAfGAAaGgoHCP___wcQQBIICK2A7wcQ_wEYoB8gACgAIgkIARIFCP___wcqFwgBEggI____BxD_ARkAAAAAAADwPyAAEgQIARAAGgIIAA</ex:extension>
+	<name>OTHOCA</name>
+	<StyleMap id="__managed_style_0D848E0EBA4305D792BE">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_0D848E0EBA4305D792BE_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_0D848E0EBA4305D792BE_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<gx:CascadingStyle kml:id="__managed_style_0D848E0EBA4305D792BE_normal">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>fff5a542</color>
+				<width>2</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>802f2fd3</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_0A94DA21484305D792B7_highlight">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>fff5a542</color>
+				<width>3</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>806b7900</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_0D98C9495A4305D792BB_normal">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>2</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_0A94DA21484305D792B7_normal">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>fff5a542</color>
+				<width>2</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>806b7900</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_09546945A34305D792BF">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_09546945A34305D792BF_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_09546945A34305D792BF_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<gx:CascadingStyle kml:id="__managed_style_0D98C9495A4305D792BB_highlight">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>3</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_0A94DA21484305D792B7">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_0A94DA21484305D792B7_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_0A94DA21484305D792B7_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<gx:CascadingStyle kml:id="__managed_style_09546945A34305D792BF_highlight">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>fff5a542</color>
+				<width>3</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>806b7900</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_09546945A34305D792BF_normal">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>fff5a542</color>
+				<width>2</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>806b7900</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_0D848E0EBA4305D792BE_highlight">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>fff5a542</color>
+				<width>3</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>802f2fd3</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_0BDCB9B41C4305D792BC_normal">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>2</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_0D98C9495A4305D792BB">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_0D98C9495A4305D792BB_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_0D98C9495A4305D792BB_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<gx:CascadingStyle kml:id="__managed_style_0BDCB9B41C4305D792BC_highlight">
+		<ex:extension>base64;EgIYAQ</ex:extension>
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>3</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_0BDCB9B41C4305D792BC">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_0BDCB9B41C4305D792BC_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_0BDCB9B41C4305D792BC_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Placemark id="09D0CC389B4305CC0841">
+		<name>CAMPETTO + SPALTI</name>
+		<LookAt>
+			<longitude>8.585187209039418</longitude>
+			<latitude>39.89155707473079</latitude>
+			<altitude>7.42439302291265</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>189.7992867620087</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0BDCB9B41C4305D792BC</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585297681855392,39.89177587978092,0 8.585035255176784,39.89173694905044,0 8.585036235401706,39.89170599601618,0 8.58495401823761,39.89166512595924,0 8.585017334951381,39.8913894894345,0 8.585109105495125,39.89140359853416,0 8.585129892370986,39.89133952809528,0 8.585390613564201,39.8913760519949,0 8.585297681855392,39.89177587978092,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="0A8B9C84574305CCA5F4">
+		<name>PISTA D&apos;ATLETICA</name>
+		<LookAt>
+			<longitude>8.585675946629316</longitude>
+			<latitude>39.89191896961646</latitude>
+			<altitude>6.376191896169459</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>242.3802320343748</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0D98C9495A4305D792BB</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.584812412798495,39.89212228021836,0 8.586330516335414,39.89150487934479,0 8.586322974311349,39.89157570190769,0 8.584852211763877,39.89217735583587,0 8.584812412798495,39.89212228021836,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="07E5E48EA34305CD6447">
+		<name>LABORATORI</name>
+		<LookAt>
+			<longitude>8.585690308244892</longitude>
+			<latitude>39.89113703441583</latitude>
+			<altitude>8.143289070072488</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>196.2028286795248</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0D98C9495A4305D792BB</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585382677212625,39.89089927722475,0 8.586131116474832,39.89100717624072,0 8.586046587019036,39.89134553962892,0 8.585291383762705,39.89124167940622,0 8.585382677212625,39.89089927722475,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="0B5EDEE6494305CDC487">
+		<name>LABORATORI</name>
+		<LookAt>
+			<longitude>8.585660818978544</longitude>
+			<latitude>39.89064134291864</latitude>
+			<altitude>15.08201474893658</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>282.1430493456137</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0D98C9495A4305D792BB</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585524955522638,39.8904731674296,0 8.585787867540555,39.89050796123012,0 8.585710144361782,39.89085139416148,0 8.585433387828711,39.8908144298669,0 8.585524955522638,39.8904731674296,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="0222D9A4234305CE1617">
+		<name>PALESTRA 3 - PICCOLA</name>
+		<LookAt>
+			<longitude>8.585958779605496</longitude>
+			<latitude>39.890678729329</latitude>
+			<altitude>14.77294679186922</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>231.1878388363402</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_09546945A34305D792BF</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585877501443335,39.8905286886972,0 8.586024023258796,39.89055266821197,0 8.585963220687038,39.89077053692001,0 8.58582410284855,39.89075177824582,0 8.585877501443335,39.8905286886972,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="0411D707724305CF9637">
+		<ex:extension>base64;GgIoAQ</ex:extension>
+		<name>ALA NUOVA</name>
+		<LookAt>
+			<longitude>8.585541804720854</longitude>
+			<latitude>39.89003877622847</latitude>
+			<altitude>17.52273726054721</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>262.6437813594384</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0A94DA21484305D792B7</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585490225547204,39.88967072225329,0 8.585757999380929,39.88971543389663,0 8.585579528075256,39.89039989508046,0 8.585319410064864,39.89037420821872,0 8.585490225547204,39.88967072225329,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="0284110C3B4305D01AE6">
+		<name>ANDITO - ENTRATA</name>
+		<LookAt>
+			<longitude>8.585669294254625</longitude>
+			<latitude>39.88973930269216</latitude>
+			<altitude>17.40957438866645</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>336.7797433819942</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0A94DA21484305D792B7</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585551791334872,39.8894555958126,0 8.585636265359767,39.8894697174696,0 8.585575600531746,39.88970183037839,0 8.585487733875395,39.88968446684521,0 8.585551791334872,39.8894555958126,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="00CEE4B5694305D06EE1">
+		<name>PALAZETTO CON SPALTI</name>
+		<LookAt>
+			<longitude>8.585669294254625</longitude>
+			<latitude>39.88973930269216</latitude>
+			<altitude>17.40957438866645</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>336.7797433819942</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0A94DA21484305D792B7</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585717160705668,39.88944015317728,0 8.586104167706495,39.88950434423649,0 8.586033891506816,39.88976423088131,0 8.585654836091418,39.88970761570317,0 8.585717160705668,39.88944015317728,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="0FDE1744204305D145B8">
+		<name>PALESTRA CON MACCHINARI</name>
+		<LookAt>
+			<longitude>8.58637729953381</longitude>
+			<latitude>39.88968552212338</latitude>
+			<altitude>18.2850294510054</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>319.5156303676777</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0A94DA21484305D792B7</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.586151978355673,39.88962293904613,0 8.586291775450213,39.88964425295713,0 8.586222178790958,39.8898991516332,0 8.586091128400838,39.88988184426344,0 8.586151978355673,39.88962293904613,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="08B3CFF0B84305D216A0">
+		<name>ALA VECCHIA</name>
+		<LookAt>
+			<longitude>8.586408745993365</longitude>
+			<latitude>39.89037187755497</latitude>
+			<altitude>6.641160737197733</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>429.028952949011</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0A94DA21484305D792B7</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585857414817612,39.89051184332104,0 8.585819416949501,39.89049617301114,0 8.585852664230988,39.89042371157134,0 8.585925616812665,39.89044744192972,0 8.586069997803587,39.8898677735232,0 8.586461702190713,39.88992053817124,0 8.586385162445012,39.89023052810105,0 8.586291318601216,39.89023492947396,0 8.58625752716007,39.89045823254325,0 8.586468956581841,39.89048719043617,0 8.586423370323113,39.89070056817384,0 8.586079569405038,39.89065402051303,0 8.58603607029908,39.89078633798029,0 8.585812501119193,39.89074668418392,0 8.585857414817612,39.89051184332104,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+	<Placemark id="0E867762E04305D284CC">
+		<name>CORRIDOIO CHE COLLEGA ALA NUOVA E VECCHIA</name>
+		<LookAt>
+			<longitude>8.586017508959735</longitude>
+			<latitude>39.89010353103422</latitude>
+			<altitude>17.0909731712134</altitude>
+			<heading>1.009590827279049</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>186.9840775997727</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_0D848E0EBA4305D792BE</styleUrl>
+		<Polygon>
+			<outerBoundaryIs>
+				<LinearRing>
+					<coordinates>
+						8.585703462129855,39.88995189219585,0 8.586034128842225,39.8899974846209,0 8.586021448643875,39.89004234958148,0 8.585689187243981,39.88999396596452,0 8.585703462129855,39.88995189219585,0 
+					</coordinates>
+				</LinearRing>
+			</outerBoundaryIs>
+		</Polygon>
+	</Placemark>
+</Document>
+</kml>

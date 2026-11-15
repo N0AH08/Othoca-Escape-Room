@@ -56,7 +56,7 @@ const GAME = {
       startYaw: 0, startPitch: -0.15,
       say: "Ciao! Io sono Othy, una statuina di terracotta antichissima. Guarda l'insegna lassù: OTHOCA, come la mia città! Entriamo?",
       links: [{ yaw: 0.107, pitch: -0.005, target: "atrio" }],
-      items: [{ yaw: 0.45, pitch: -0.4, icon: "🏛️", label: "Insegna", puzzle: "targa" }]
+      items: [{ yaw: 0.03, pitch: -0.66, icon: "🏛️", label: "Insegna", puzzle: "targa" }]
     },
     {
       id: "atrio",
@@ -69,8 +69,8 @@ const GAME = {
           lockedSay: "Serve un codice di 4 cifre. Cerca un foglietto qui intorno!" }
       ],
       items: [
-        { yaw: 1.05, pitch: 0.02, icon: "🗒️", label: "Post-it", puzzle: "postit" },
-        { yaw: 0.6, pitch: 0.02, icon: "🔢", label: "Tastierino", puzzle: "binario" }
+        { yaw: 0.78, pitch: -0.04, icon: "🗒️", label: "Post-it", puzzle: "postit" },
+        { yaw: 0.58, pitch: -0.02, icon: "🔢", label: "Tastierino", puzzle: "binario" }
       ]
     },
     {
