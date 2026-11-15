@@ -2,7 +2,14 @@
 
 **Versione attuale:** `index.html`. Il robot rosa cammina in modo continuo nelle foto 360° vere dell'ala nuova
 (ingresso → atrio → corridoio → andito → corridoio del palazzetto → palazzetto). La telecamera lo segue
-da dietro e le foto si fondono mentre cammina, senza stacchi.
+da dietro. Si vede sempre una sola foto, quella del punto di scatto più vicino; quando si passa alla successiva c'è
+una dissolvenza di mezzo secondo, così non compaiono immagini doppie.
+
+**Prospettiva:** ogni foto è proiettata su una stanza rettangolare con le misure vere (`room` in
+`percorso-config.js`: metri dal punto di scatto alle pareti; `roomYaw` se la stanza è storta rispetto alla foto).
+Le misure sono state prese da una vista dall'alto di ogni foto proiettata sul pavimento con una griglia di 1 m.
+Solo l'ingresso, all'aperto, usa ancora un cilindro (`wall`). Oggetti alti e vicini (paletti, nastri) restano un po'
+"stesi" sul pavimento quando li si guarda da un punto diverso da quello di scatto: è un limite delle foto 360°.
 
 ## Percorso ed enigmi (in ordine; ogni enigma apre il passaggio successivo)
 | Dove | Oggetto | Enigma | Ricompensa |
@@ -62,6 +69,43 @@ Sabotatore, demo a stanza singola) sono in `archivio/` e non si avviano da lì s
   il coperchio si apre con un bagliore dorato.
 
 Per provarlo: `python3 -m http.server 8000` in questa cartella, poi http://localhost:8000
+
+## Versione a stanza singola: `laboratorio.html` ("Blackout in laboratorio")
+Escape room breve (10–15 minuti) tutta nel **laboratorio di Elettrotecnica**: un fulmine fa saltare la corrente
+e la porta si blocca. Si gioca col **robot rosa**, che **cammina in tutto il laboratorio** (WASD, frecce, croce
+sullo schermo o clic sul pavimento), come nel gioco principale. Gli oggetti e i loro enigmi **si vedono solo
+avvicinandosi**: entro circa 2,5 m compaiono, da vicino l'enigma si apre da solo (poi si riapre con **E** o ESAMINA).
+
+| Oggetto nella foto | Dove | Enigma | Ricompensa |
+|---|---|---|---|
+| Avviso sulla porta | parete davanti | Storia + prime 5 lettere fenicie (da leggere) | |
+| Lavagna bianca | parete sinistra | Codice dei colori di una resistenza | coccio 𐤀 |
+| Pannello verde degli strumenti | parete sinistra, verso il fondo | Legge di Ohm: tre correnti I = V : R | coccio 𐤁 |
+| Quadro elettrico (armadietto grigio) | parete della porta, a destra | Interruttori e spie (le 3 versioni del gioco principale) | coccio 𐤂 |
+| Portatile sulla cattedra | cattedra lunga a destra | Pixel da accendere (numero casuale) | coccio 𐤃 |
+| Banco di collaudo | in fondo al laboratorio | Sequenza di spie a memoria | coccio 𐤄 |
+| Armadio grigio con le ante di vetro | angolo in fondo a destra | Cassetta: cocci in ordine fenicio | fine |
+
+- Colori, valori, numeri e cifre dei cocci cambiano a ogni partita. Modalità **Normale** (15 min, indizi −30 s)
+  e **Sfida** (10 min, indizi −45 s). Classifica e salvataggio sono **separati** dal gioco principale.
+- Othy, timer, cocci, cassa finale, riquadro Obiettivo con la scia di frecce e pannello del gestore (Ctrl+Shift+G)
+  sono gli stessi del gioco principale.
+- File: `laboratorio.html` (pagina e grafica) e `laboratorio-config.js` (misure della stanza, oggetti, enigmi,
+  varianti). Usa anche `config.js`, `game.js` e `percorso.js`.
+- **Misure della stanza** (in `laboratorio-config.js`, stimate dalla foto con la fotocamera a 1,5 m):
+  `room` = distanze dal punto di scatto alle pareti (sinistra 2 m, davanti 7,6 m, destra 12,5 m, dietro 14 m),
+  `walk` = zona in cui il robot può camminare, `stand` di ogni oggetto = dove si ferma il robot ([destra, avanti] in metri),
+  `dist` = distanza di un oggetto che non è su una parete (es. il portatile sul tavolo).
+- **Limite:** c'è una sola foto, quindi lontano dal punto di scatto tavoli e banchi appaiono "stirati" sul pavimento
+  e gli angoli più lontani sono meno nitidi; il robot passa davanti ai mobili invece di girarci intorno.
+- Opzioni nuove nei motori, usate solo da questa pagina (senza di esse tutto funziona come prima):
+  in `game.js` `GAME.saveKey`, `GAME.leaderboardKey` e `tip` sugli oggetti (consiglio di Othy);
+  in `percorso.js` `room`, `walk`, `stand`, `dist` e una stanza senza porte (`links: []`).
+- Perché l'Elettrotecnica: tra le quattro foto di laboratorio è quella con più oggetti "da elettrotecnico" ben
+  visibili (pannello degli strumenti, quadro elettrico, banchi di collaudo, lavagna, cattedra con i portatili),
+  quindi gli enigmi di elettricità e logica sono legati a oggetti veri; le sue foto erano già in `tiles/`.
+
+Per provarlo: `python3 -m http.server 8742 --directory escape-othoca`, poi http://localhost:8742/laboratorio.html
 
 ---
 

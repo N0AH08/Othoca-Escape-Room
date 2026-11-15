@@ -9,8 +9,10 @@
  *   links: collegamenti reali del tour (yaw = direzione nella foto, dist = distanza stimata in metri)
  *          lock = enigma che apre il passaggio, lockedSay = cosa dice Othy se è chiuso
  *   items: oggetti/indizi (yaw e pitch nella foto)
- *   wall:  distanza media delle pareti (m) per proiettare la foto; box: [mezza larghezza, mezza profondità]
- *          per i corridoi stretti (nel sistema della foto: x = destra/sinistra, z = avanti/indietro)
+ *   room:  distanze (m) dal punto di scatto alle pareti a sinistra, destra, davanti e dietro: la foto viene
+ *          proiettata su una stanza rettangolare, così le pareti restano dritte. Misurate dalla vista dall'alto
+ *          della foto proiettata sul pavimento. roomYaw = rotazione della stanza se è storta rispetto alla foto.
+ *   wall:  (all'aperto) raggio del cilindro su cui si proietta la foto
  */
 window.PERCORSO_3D = true;
 
@@ -228,8 +230,8 @@ GAME.scenes = [
     items: [{ yaw: 0.03, pitch: -0.66, icon: "🏫", label: "Insegna", puzzle: "targa" }]
   },
   {
-    id: "2-3ingresso-nuovo", name: "Ingresso", wall: 5.5, walk: 3.6,
-    say: "Le porte verso l'atrio sono chiuse con un tastierino. Cerchiamo un promemoria qui intorno!",
+    id: "2-3ingresso-nuovo", name: "Atrio", wall: 5.5,
+    say: "Le porte verso il corridoio sono chiuse con un tastierino. Cerchiamo un promemoria qui intorno!",
     links: [
       { target: "1-2ingresso-dentro", yaw: -3.1099 },
       { target: "3-4corridoio-nuovo", yaw: 0.278, dist: 9.4, lock: "binario", lockedSay: "Serve il codice del tastierino. Cerca un foglietto vicino alle porte!" }
@@ -240,8 +242,8 @@ GAME.scenes = [
     ]
   },
   {
-    id: "3-4corridoio-nuovo", name: "Atrio", wall: 6, walk: 4,
-    say: "Siamo nell'atrio! Su quella bacheca blu c'è un messaggio strano…",
+    id: "3-4corridoio-nuovo", name: "Corridoio", wall: 6,
+    say: "Che bel corridoio! Su quella bacheca blu c'è un messaggio strano…",
     links: [
       { target: "2-3ingresso-nuovo", yaw: -2.1257 },
       { target: "4-5andito-nuovo", yaw: 1.3584, dist: 10.8, lock: "cesare", lockedSay: "Il passaggio è chiuso. La parola segreta è nel messaggio sulla bacheca blu." }
@@ -249,8 +251,8 @@ GAME.scenes = [
     items: [{ yaw: -2.66, pitch: -0.07, icon: "📌", label: "Bacheca blu", puzzle: "cesare" }]
   },
   {
-    id: "4-5andito-nuovo", name: "Andito", wall: 8, walk: 5.8,
-    say: "L'andito! Sulla bacheca rossa c'è la tabella dei codici… e la scrivania ha un vecchio monitor.",
+    id: "4-5andito-nuovo", name: "Andito", wall: 8,
+    say: "L'andito! Su quella bacheca rossa c'è qualcosa di antico… e la scrivania ha un vecchio monitor.",
     links: [
       { target: "3-4corridoio-nuovo", yaw: 2.9038 },
       { target: "5-6andito-nuovo", yaw: 1.2245, dist: 9.9, lock: "pixel", lockedSay: "Il passaggio è bloccato da un lettore collegato al monitor della scrivania. Facciamolo funzionare!" }
@@ -261,8 +263,8 @@ GAME.scenes = [
     ]
   },
   {
-    id: "5-6andito-nuovo", name: "Andito delle vetrine", wall: 6, walk: 4.2,
-    say: "Che belle queste vetrine! In una c'è un cartellino con un messaggio in Morse…",
+    id: "5-6andito-nuovo", name: "Andito delle vetrine", wall: 6,
+    say: "Che belle queste vetrine! In una c'è un cartellino scritto con segni strani…",
     links: [
       { target: "4-5andito-nuovo", yaw: 1.6091 },
       { target: "6-7corridoio-palazzetto", yaw: -0.007, dist: 6.6, lock: "tanit", lockedSay: "Il corridoio del palazzetto è chiuso. Prima decifriamo il messaggio nella vetrina!" }
@@ -270,7 +272,7 @@ GAME.scenes = [
     items: [{ yaw: -0.86, pitch: 0.01, icon: "🔬", label: "Vetrina", puzzle: "tanit" }]
   },
   {
-    id: "6-7corridoio-palazzetto", name: "Corridoio del palazzetto", box: [1.4, 9], walk: 1.1,
+    id: "6-7corridoio-palazzetto", name: "Corridoio del palazzetto", box: [1.4, 9],
     say: "Un corridoio pieno di quadri elettrici… quello grande a destra ha degli interruttori!",
     links: [
       { target: "5-6andito-nuovo", yaw: -3.0367 },
@@ -279,7 +281,7 @@ GAME.scenes = [
     items: [{ yaw: 2.62, pitch: -0.02, icon: "💡", label: "Quadro elettrico", puzzle: "circuito" }]
   },
   {
-    id: "7-8entrata-palazzetto", name: "Entrata del palazzetto", wall: 6, walk: 4,
+    id: "7-8entrata-palazzetto", name: "Entrata del palazzetto", wall: 4,
     say: "Siamo all'entrata del palazzetto! Quel pannello accanto alla porta comanda le luci.",
     links: [
       { target: "6-7corridoio-palazzetto", yaw: 0.6929 },
@@ -288,8 +290,8 @@ GAME.scenes = [
     items: [{ yaw: 0.7, pitch: -0.18, icon: "🎛️", label: "Pannello luci", puzzle: "simon" }]
   },
   {
-    id: "8-9centropalazzetto", name: "Palazzetto", wall: 16, walk: 11.5,
-    say: "Che spazio enorme! Il nucleo di Othy dev'essere qui… guarda sotto il tabellone!",
+    id: "8-9centropalazzetto", name: "Palazzetto", wall: 16,
+    say: "Che spazio enorme! La cassa del sigillo dev'essere qui… guarda sotto il tabellone!",
     links: [{ target: "7-8entrata-palazzetto", yaw: -0.0227 }],
     items: [{ yaw: 1.44, pitch: 0.12, icon: "🤖", label: "Nucleo di Othy", puzzle: "finale" }]
   }
