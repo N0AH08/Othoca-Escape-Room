@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Othoca Escape</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- Caricamento -->
+  <div id="loading" class="screen"><div class="load-in">
+    <img src="logo.png" alt=""><div class="bar"><i id="loadBar"></i></div><p id="loadText">Carico…</p>
+  </div></div>
+
+  <!-- Menu principale -->
+  <div id="menu" class="screen" hidden>
+    <div class="menu-card">
+      <img class="logo" src="logo.png" alt="Logo Othoca">
+      <h1>Othoca <span>Escape</span></h1>
+      <p class="sub">Esplora i laboratori dell'I.T.I. "Othoca" di Oristano e risolvi le sfide dei prof per uscire da ogni stanza.</p>
+      <div class="menu-btns">
+        <button class="btn primary big" data-act="play">▶ Gioca</button>
+        <button class="btn" data-act="settings">⚙ Impostazioni</button>
+        <button class="btn" data-act="credits">ℹ Crediti</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ingresso 360° -->
+  <div id="hub" class="screen" hidden>
+    <canvas id="pano"></canvas>
+    <div id="panoMarkers"></div>
+    <div class="hub-top">
+      <div class="brand"><img src="logo.png" alt=""><b>I.T.I. Othoca</b><span id="panoTitle">Ingresso</span></div>
+      <div class="spacer"></div>
+      <button class="btn small" id="panoPrev" title="Punto di vista precedente">‹</button>
+      <button class="btn small" id="panoNext" title="Punto di vista successivo">›</button>
+      <button class="btn small ghost" id="panoBack">✕</button>
+    </div>
+    <div class="hub-bottom" id="hubBottom">
+      <p id="panoHelp">Trascina per guardarti intorno · clicca i cerchi per scoprire la scuola</p>
+      <button class="btn primary big" id="enterBtn">Entra a scuola →</button>
+    </div>
+  </div>
+
+  <!-- Mappa delle stanze -->
+  <div id="map" class="screen" hidden>
+    <div class="map-wrap">
+      <div class="map-head">
+        <div><div class="eyebrow">Scegli la tua escape room</div><h2>Dove vuoi andare?</h2></div>
+        <div class="spacer"></div>
+        <div class="progress" id="mapProgress"></div>
+        <button class="btn ghost" id="mapBack">← Ingresso</button>
+      </div>
+      <div class="cards" id="roomCards"></div>
+    </div>
+  </div>
+
+  <!-- HUD di gioco -->
+  <div id="hud" hidden>
+    <div class="hud-top">
+      <div class="hud-room"><div class="eyebrow" id="hudIndirizzo"></div><b id="hudRoom"></b></div>
+      <div class="hud-timer" id="hudTimer">00:00</div>
+      <div class="hud-actions">
+        <button class="iconbtn" id="btnPhoto" title="Foto 360° reale (F)">📷</button>
+        <button class="iconbtn" id="btnHint" title="Aiuto (H)">💡<i id="hintCount"></i></button>
+        <button class="iconbtn" id="btnInv" title="Inventario (Tab)">🎒<i id="invCount"></i></button>
+        <button class="iconbtn" id="btnPause" title="Pausa (Esc)">⏸</button>
+      </div>
+    </div>
+    <div class="objective" id="objective"><div class="eyebrow">Obiettivo</div><div id="objText"></div><div class="objbar"><i id="objBar"></i></div><div class="objhint">Segui i rombi rosa <span>◆</span> sopra le cose da usare</div><div class="tasks" id="taskList"></div></div>
+    <div id="prompt" hidden><kbd>E</kbd><span id="promptText"></span></div>
+    <div id="toast" hidden></div>
+    <div id="clickToPlay" hidden>Clicca per muovere la visuale col mouse</div>
+    <div class="keys">W avanti · S indietro · A/D gira · Shift corri · E interagisci · Tab zaino · H aiuto · Esc pausa</div>
+    <div id="touchPad" hidden><div class="stick" id="stick"><i></i></div><button id="touchUse">E</button></div>
+  </div>
+
+  <!-- Dialoghi -->
+  <div id="dialog" hidden>
+    <div class="dlg-box">
+      <img id="dlgImg" alt="" hidden>
+      <div class="dlg-who"><span id="dlgWho"></span><small id="dlgRole"></small></div>
+      <div class="dlg-text" id="dlgText"></div>
+      <div class="dlg-choices" id="dlgChoices"></div>
+      <div class="dlg-next" id="dlgNext">E / clic per continuare ▸</div>
+    </div>
+  </div>
+
+  <!-- Finestre (puzzle, inventario, aiuti, documenti, pausa, vittoria) -->
+  <div id="modal" class="overlay" hidden><div class="panel" id="modalPanel"></div></div>
+
+  <!-- Viewer foto reale -->
+  <div id="photoView" hidden>
+    <canvas id="photoCanvas"></canvas>
+    <div class="photo-bar"><b id="photoTitle">Foto 360° reale</b><small>trascina per guardarti intorno</small><div class="spacer"></div>
+      <button class="btn small" id="photoPrev">‹</button><button class="btn small" id="photoNext">›</button><button class="btn small" id="photoClose">✕ Torna al gioco</button></div>
+  </div>
+
+  <script type="importmap">{ "imports": { "three": "./lib/three.module.min.js", "three/addons/": "./lib/addons/" } }</script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
