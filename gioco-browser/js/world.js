@@ -590,34 +590,44 @@ const camPos = new THREE.Vector3(); let camDist = 3.0, camInit = false, camY = 0
 const ray = new THREE.Raycaster();
 export function updatePlayer(dt) {
   const k = input.keys;
-  // comandi semplici: W/S avanti e indietro, A/D girano il personaggio; la camera la segue da sola
-  let turn = 0, fwd = 0;
+  // comandi in stile "terza persona moderna": WASD muovono rispetto alla visuale,
+  // il personaggio si gira da solo verso dove cammina; frecce ←/→ e mouse girano la visuale
+  let ix = 0, iy = 0, camTurn = 0;
   if (input.enabled) {
-    if (k.has("KeyW") || k.has("ArrowUp")) fwd += 1;
-    if (k.has("KeyS") || k.has("ArrowDown")) fwd -= 1;
-    if (k.has("KeyA") || k.has("ArrowLeft")) turn += 1;
-    if (k.has("KeyD") || k.has("ArrowRight")) turn -= 1;
-    turn -= input.touch.x; fwd += input.touch.y;
+    if (k.has("KeyW") || k.has("ArrowUp")) iy += 1;
+    if (k.has("KeyS") || k.has("ArrowDown")) iy -= 1;
+    if (k.has("KeyA")) ix -= 1;
+    if (k.has("KeyD")) ix += 1;
+    if (k.has("ArrowLeft")) camTurn += 1;
+    if (k.has("ArrowRight")) camTurn -= 1;
+    ix += input.touch.x; iy += input.touch.y;
   }
-  turn = Math.max(-1, Math.min(1, turn)); fwd = Math.max(-1, Math.min(1, fwd));
+  let mag = Math.hypot(ix, iy); if (mag > 1) { ix /= mag; iy /= mag; mag = 1; }
   const run = k.has("ShiftLeft") || k.has("ShiftRight");
-  const moving = Math.abs(fwd) > 0.05;
-  const target = moving ? (fwd < 0 ? 1.6 : run ? 4.6 : 2.6) * Math.abs(fwd) : Math.abs(turn) > 0.05 ? 0.6 : 0;
-  player.speed += (target - player.speed) * Math.min(1, dt * 10);
-  // rotazione morbida (accelera e frena), più lenta: niente scatti che danno nausea
-  turnVel += (turn * (moving ? 1.7 : 2.0) - turnVel) * Math.min(1, dt * 6);
-  player.facing += turnVel * dt;
+  // giro visuale con le frecce (accelera e frena: niente scatti)
+  turnVel += (camTurn * 2.2 - turnVel) * Math.min(1, dt * 8);
+  if (Math.abs(turnVel) > 0.001) { input.yaw += turnVel * dt; input.lastLook = performance.now() - 600; }
+  const moving = mag > 0.08;
   if (moving) {
-    const dir = Math.sign(fwd);
-    player.pos.x += Math.sin(player.facing) * player.speed * dt * dir;
-    player.pos.y += Math.cos(player.facing) * player.speed * dt * dir;
+    // avanti = direzione in cui guarda la camera
+    const fx = -Math.sin(input.yaw), fz = -Math.cos(input.yaw), rx = Math.cos(input.yaw), rz = -Math.sin(input.yaw);
+    const dx = fx * iy + rx * ix, dz = fz * iy + rz * ix;
+    const want = Math.atan2(dx, dz);
+    let d = want - player.facing; d = Math.atan2(Math.sin(d), Math.cos(d));
+    player.facing += d * Math.min(1, dt * 12);
   }
-  // la visuale resta agganciata dietro al personaggio (il mouse la sposta solo per un attimo)
-  if (performance.now() - input.lastLook > 1200) {
+  const target = moving ? (run ? 5.0 : 3.0) * mag : 0;
+  player.speed += (target - player.speed) * Math.min(1, dt * (moving ? 9 : 14));
+  if (player.speed > 0.01) {
+    player.pos.x += Math.sin(player.facing) * player.speed * dt;
+    player.pos.y += Math.cos(player.facing) * player.speed * dt;
+  }
+  // la visuale si rimette piano dietro al personaggio solo mentre cammina in avanti
+  if (moving && iy > 0.3 && performance.now() - input.lastLook > 1500) {
     let d = player.facing + Math.PI - input.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
-    input.yaw += d * Math.min(1, dt * 6);
-    input.pitch += (0.14 - input.pitch) * Math.min(1, dt * 2);
+    input.yaw += d * Math.min(1, dt * 1.6 * Math.abs(iy));
   }
+  if (performance.now() - input.lastLook > 1500) input.pitch += (0.14 - input.pitch) * Math.min(1, dt * 2);
   collide(player.pos);
   const m = player.model;
   player.y += (heightAt(player.pos.x, player.pos.y) - player.y) * Math.min(1, dt * 14);

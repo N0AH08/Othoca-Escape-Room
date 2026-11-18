@@ -92,7 +92,7 @@ function askName(then) {
 function showHowTo(then) {
   const T = isTouch;
   const cards = [
-    { ico: "🕹️", t: "Muoviti", d: T ? "Usa il <b>joystick</b> in basso a sinistra per camminare nella stanza." : "<kbd>W</kbd> avanti · <kbd>S</kbd> indietro · <kbd>A</kbd> <kbd>D</kbd> per girarti. Tieni <kbd>Shift</kbd> per correre.", art: `<div class="ht-keys">${T ? `<div class="ht-stick"><i></i></div>` : `<span></span><kbd>W</kbd><span></span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>`}</div>` },
+    { ico: "🕹️", t: "Muoviti", d: T ? "Usa il <b>joystick</b> in basso a sinistra per camminare nella stanza." : "<kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> per camminare. Gira la visuale con <kbd>←</kbd> <kbd>→</kbd> o trascinando il mouse. Tieni <kbd>Shift</kbd> per correre.", art: `<div class="ht-keys">${T ? `<div class="ht-stick"><i></i></div>` : `<span></span><kbd>W</kbd><span></span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>`}</div>` },
     { ico: "💬", t: "Parla e usa", d: T ? "Avvicinati al prof o a un oggetto e tocca il pulsante <b>E</b>." : "Avvicinati al prof o a un oggetto e premi <kbd>E</kbd>. Il <b>rombo rosa</b> ti indica cosa usare.", art: `<div class="ht-diamond">◆</div>` },
     { ico: "🔓", t: "Risolvi ed esci", d: "Completa le 2 sfide del prof e raggiungi la porta <b>USCITA</b>. Meno tempo e meno aiuti 💡 = più stelle ⭐", art: `<div class="ht-stars"><i>★</i><i>★</i><i>★</i></div>` },
   ];
