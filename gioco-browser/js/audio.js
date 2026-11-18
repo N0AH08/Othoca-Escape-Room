@@ -29,6 +29,7 @@ function noise(dur = 0.08, vol = 0.15, freq = 800, when = 0) {
 
 export const sfx = {
   click: () => tone(660, 0.06, "square", 0.08),
+  coin: () => { tone(988, 0.08, "square", 0.12); tone(1319, 0.3, "square", 0.12, 0.07); tone(1760, 0.25, "triangle", 0.1, 0.14); },
   pick: () => { tone(520, 0.1, "triangle", 0.2); tone(780, 0.14, "triangle", 0.2, 0.08); },
   ok: () => { tone(523, 0.12, "triangle", 0.22); tone(659, 0.12, "triangle", 0.22, 0.1); tone(784, 0.25, "triangle", 0.22, 0.2); },
   bad: () => { tone(220, 0.18, "sawtooth", 0.12); tone(180, 0.25, "sawtooth", 0.12, 0.12); },

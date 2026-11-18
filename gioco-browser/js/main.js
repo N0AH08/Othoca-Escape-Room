@@ -52,12 +52,14 @@ const TROPHIES = [
   { id: "half", icon: "🗺️", t: "Mezza scuola", d: "Completa 4 stanze", ok: (r) => r.rooms >= 4 },
   { id: "all", icon: "🏫", t: "Tutta l'Othoca", d: "Completa tutte le 8 stanze", ok: (r) => r.rooms >= 8 },
   { id: "stars", icon: "👑", t: "Leggenda", d: "Raccogli tutte le 24 stelle", ok: (r) => r.total >= 24 },
+  { id: "flam1", icon: "🦩", t: "Occhio di falco", d: "Trova tutti e 3 i fenicotteri d'oro di una stanza", ok: (r) => r.roomFlam === 3 },
+  { id: "flamall", icon: "🏅", t: "Cacciatore di fenicotteri", d: "Trova tutti i 24 fenicotteri d'oro", ok: (r) => r.flamingos >= 24 },
   { id: "secret", icon: "🗝️", t: "Il segreto dell'Othoca", d: "Apri lo scrigno dell'Archivio segreto", ok: (r) => r.secret },
 ];
 if (!progress.trophies) progress.trophies = [];
 function checkTrophies(run) {
   const got = TROPHIES.filter((x) => !progress.trophies.includes(x.id) && x.ok(run));
-  got.forEach((x, i) => { progress.trophies.push(x.id); setTimeout(() => { sfx.ok(); showBanner(`${x.icon} TROFEO SBLOCCATO!`, x.t); }, 2600 + i * 2500); });
+  got.forEach((x, i) => { progress.trophies.push(x.id); setTimeout(() => { sfx.ok(); showBanner(`${x.icon} TROFEO SBLOCCATO!`, x.t); }, (state === "room" ? 2500 : 2600) + i * 2500); });
   save(SAVE_KEY, progress); return got;
 }
 const LOOKS = {
@@ -114,7 +116,7 @@ function newPlayer() {
   const p = modal(`<div class="eyebrow">Cambia giocatore</div><h2>Tocca a un altro?</h2><p>I progressi di <b>${esc(progress.name || "questo giocatore")}</b> ripartono da zero. La classifica resta salvata.</p>
     <div class="row"><button class="btn ghost" data-no>Annulla</button><button class="btn primary" data-yes>Nuovo giocatore</button></div>`);
   p.querySelector("[data-no]").onclick = () => closeModal();
-  p.querySelector("[data-yes]").onclick = () => { progress.rooms = {}; progress.trophies = []; progress.name = ""; save(SAVE_KEY, progress); closeModal(); refreshMenuStars(); setTimeout(() => askName(), 50); };
+  p.querySelector("[data-yes]").onclick = () => { progress.rooms = {}; progress.trophies = []; progress.flamingos = {}; progress.name = ""; save(SAVE_KEY, progress); closeModal(); refreshMenuStars(); setTimeout(() => askName(), 50); };
 }
 const rankRuns = (id) => board.runs.filter((r) => r.room === id).sort((a, b) => b.stars - a.stars || a.time - b.time);
 function showBoard(sel) {
@@ -186,7 +188,7 @@ $("enterBtn").onclick = () => { sfx.click(); openMap(); };
 function openMap() {
   hubPano.stop(); state = "map"; show("map"); if (!musicOn) { music(7); }
   const done = ROOMS.filter((r) => progress.rooms[r.id]).length;
-  $("mapProgress").innerHTML = `${done} / ${ROOMS.length} stanze · <span class="map-total">${totalStars()} ⭐</span> · ${rankOf(totalStars())}`;
+  $("mapProgress").innerHTML = `${done} / ${ROOMS.length} stanze · <span class="map-total">${totalStars()} ⭐</span> · 🦩 ${totalFlamingos()}/${ROOMS.length * FLAMINGOS} · ${rankOf(totalStars())}`;
   $("roomCards").innerHTML = ROOMS.map((r) => {
     const pr = progress.rooms[r.id];
     return `<div class="card" data-room="${r.id}">
@@ -197,7 +199,7 @@ function openMap() {
       ${pr ? `<span class="stars-won">${[1, 2, 3].map((k) => `<span class="${k <= (pr.stars || 1) ? "star-on" : "star-off"}">★</span>`).join("")}</span>` : ""}
       <span class="badge ${pr ? "done" : ""}">${pr ? "✓ Completata · " + fmtTime(pr.best) : "Da fare"}</span>
       <div class="body"><h3>${esc(r.name)}</h3><div class="ind">${esc(r.indirizzo)}</div>
-      <div class="meta"><span>Difficoltà <span class="stars">${"★".repeat(r.difficulty)}${"☆".repeat(3 - r.difficulty)}</span></span><span>${r.tasks.length} sfide</span></div></div></div>`;
+      <div class="meta"><span class="flam ${flamingosFound(r.id) >= FLAMINGOS ? "full" : ""}">🦩 ${flamingosFound(r.id)}/${FLAMINGOS}</span><span>Difficoltà <span class="stars">${"★".repeat(r.difficulty)}${"☆".repeat(3 - r.difficulty)}</span></span><span>${r.tasks.length} sfide</span></div></div></div>`;
   }).join("");
   const open = roomsDone() === ROOMS.length, sp = progress.rooms[SECRET.id];
   $("roomCards").insertAdjacentHTML("beforeend", `<div class="card secret ${open ? "open" : "locked"}" ${open ? `data-room="${SECRET.id}"` : ""}>
@@ -270,6 +272,7 @@ function buildRoom(def) {
   if (DECOR[def.id]) DECOR[def.id](ctx);
   spawnPlayer(def.spawn[0], def.spawn[1], def.spawn[2], hasTeacherModel() ? () => makeBoy(progress.look || {}) : hasModel() ? makeSkinned : null);
   addExtras(def, exitPoint);
+  addFlamingos(def);
   buildMarkers();
   guide = beacon();
   $("hudRoom").textContent = def.name; $("hudIndirizzo").textContent = def.indirizzo;
@@ -302,6 +305,62 @@ function reachableAll(targets, spawn) {
   if (!best) return false; q.push(best); seen[best[0] * nz + best[1]] = 1;
   while (q.length) { const [i, j] = q.pop(); for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, c = j + dj; if (a < 0 || c < 0 || a >= nx || c >= nz) continue; const k = a * nz + c; if (seen[k] || !free[k]) continue; seen[k] = 1; q.push([a, c]); } }
   return targets.every(([x, z, r]) => { for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) if (seen[i * nz + j] && Math.hypot(b.x0 + i * S - x, b.z0 + j * S - z) <= r) return true; return false; });
+}
+// ---------- fenicotteri d'oro: 3 per stanza, nascosti negli angoli da esplorare ----------
+const FLAMINGOS = 3;
+let goldies = [];
+const flamingosFound = (id) => (progress.flamingos && progress.flamingos[id]) || 0;
+const totalFlamingos = () => ROOMS.reduce((a, r) => a + flamingosFound(r.id), 0);
+function goldFlamingo() {
+  const g = new THREE.Group(); const gold = new THREE.MeshStandardMaterial({ color: 0xffc83d, emissive: 0xff9a00, emissiveIntensity: 0.55, metalness: 0.85, roughness: 0.25 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 14), gold); body.scale.set(1, 0.75, 1.5); body.position.y = 0.32; g.add(body);
+  const neck = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.022, 8, 20, Math.PI * 1.25), gold); neck.position.set(0, 0.42, 0.12); neck.rotation.y = Math.PI / 2; neck.rotation.z = -0.3; g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.045, 14, 10), gold); head.position.set(0, 0.55, 0.06); g.add(head);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.08, 8), new THREE.MeshStandardMaterial({ color: 0x2a1a00, roughness: 0.5 })); beak.position.set(0, 0.53, 0.12); beak.rotation.x = Math.PI / 2 + 0.6; g.add(beak);
+  for (const x of [-0.03, 0.03]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.26, 6), gold); leg.position.set(x, 0.13, 0); g.add(leg); }
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.27, 32), new THREE.MeshBasicMaterial({ color: 0xffd54f, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; g.add(ring);
+  g.userData.ring = ring;
+  return g;
+}
+function reachCells(spawn) {
+  const b = world.bounds, S = 0.25, nx = Math.ceil((b.x1 - b.x0) / S) + 1, nz = Math.ceil((b.z1 - b.z0) / S) + 1;
+  const free = new Uint8Array(nx * nz), seen = new Uint8Array(nx * nz);
+  for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const x = b.x0 + i * S, z = b.z0 + j * S; let ok = true; for (const c of world.colliders) if (distToRect(x, z, c) < 0.32) { ok = false; break; } free[i * nz + j] = ok ? 1 : 0; }
+  const si = Math.round((spawn[0] - b.x0) / S), sj = Math.round((spawn[1] - b.z0) / S);
+  let best = null, bd = 1e9; for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) if (free[i * nz + j]) { const d = (i - si) ** 2 + (j - sj) ** 2; if (d < bd) { bd = d; best = [i, j]; } }
+  if (!best) return []; const q = [best]; seen[best[0] * nz + best[1]] = 1; const out = [];
+  while (q.length) { const [i, j] = q.pop(); out.push([b.x0 + i * S, b.z0 + j * S]); for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, c = j + dj; if (a < 0 || c < 0 || a >= nx || c >= nz) continue; const k = a * nz + c; if (seen[k] || !free[k]) continue; seen[k] = 1; q.push([a, c]); } }
+  return out;
+}
+function addFlamingos(def) {
+  goldies = [];
+  if (def.secret || !world.bounds) return;
+  const left = FLAMINGOS - flamingosFound(def.id); if (left <= 0) return;
+  const cells = reachCells(def.spawn); if (!cells.length) return;
+  // preferisci i posti lontani dall'ingresso e vicini a muri o arredi (più nascosti)
+  const score = ([x, z]) => { let near = 9; for (const c of world.colliders) near = Math.min(near, distToRect(x, z, c)); const b = world.bounds; near = Math.min(near, x - b.x0, b.x1 - x, z - b.z0, b.z1 - z); return Math.hypot(x - def.spawn[0], z - def.spawn[1]) * 0.25 - near * 1.5 + Math.random() * 1.5; };
+  const cand = cells.filter(([x, z]) => Math.hypot(x - def.spawn[0], z - def.spawn[1]) > 2.5 && Math.hypot(x - def.teacher.at[0], z - def.teacher.at[1]) > 1.2).sort((a, b) => score(b) - score(a));
+  for (const [x, z] of cand) {
+    if (goldies.length >= left) break;
+    if (goldies.some((g) => Math.hypot(g.x - x, g.z - z) < Math.max(3, Math.min(def.size[0], def.size[1]) * 0.35))) continue;
+    const m = goldFlamingo(); m.scale.setScalar(1.4); const y = heightAt(x, z); m.position.set(x, y, z); world.scene.add(m);
+    const gd = { m, x, z, y, t: Math.random() * 6, taken: false }; goldies.push(gd);
+  }
+  world.animated.push((dt) => {
+    for (const g of goldies) {
+      if (g.taken) { if (g.m.visible) { g.t += dt; g.m.position.y += dt * 3; g.m.scale.multiplyScalar(1 - dt * 3); g.m.rotation.y += dt * 20; if (g.m.scale.x < 0.05) g.m.visible = false; } continue; }
+      g.t += dt; g.m.rotation.y += dt * 1.8; g.m.position.y = g.y + 0.15 + Math.sin(g.t * 2.4) * 0.08; g.m.userData.ring.position.y = -0.13 - Math.sin(g.t * 2.4) * 0.08; g.m.userData.ring.material.opacity = 0.35 + Math.sin(g.t * 4) * 0.2;
+      if (state === "room" && Math.hypot(player.pos.x - g.x, player.pos.y - g.z) < 0.75) collectFlamingo(g);
+    }
+  });
+}
+function collectFlamingo(g) {
+  g.taken = true; sfx.coin(); confetti(g.x, g.y + 0.8, g.z, 40);
+  progress.flamingos = progress.flamingos || {}; progress.flamingos[room.id] = Math.min(FLAMINGOS, flamingosFound(room.id) + 1); save(SAVE_KEY, progress);
+  const n = flamingosFound(room.id);
+  showBanner(n === FLAMINGOS ? "🦩 TUTTI I FENICOTTERI!" : "🦩 FENICOTTERO D'ORO!", `${n} / ${FLAMINGOS} in questa stanza`);
+  player.model.cheer?.(); refreshHud();
+  checkTrophies({ roomFlam: n, flamingos: totalFlamingos(), rooms: roomsDone(), hints: 99, time: 1e9, stars: 0, total: totalStars() });
 }
 function addExtras(def, exitPoint) {
   extras = [];
@@ -356,6 +415,7 @@ function refreshHud() {
   $("objBar").style.width = (nDone / room.tasks.length * 100) + "%";
   $("taskList").innerHTML = room.tasks.map((x) => `<div class="${ctx.state.done[x.id] ? "done" : ""}">${ctx.state.done[x.id] ? "✓" : "○"} ${esc(x.title)}</div>`).join("");
   $("invCount").textContent = ctx.state.inv.length || "";
+  const hf = $("hudFlam"); if (hf) { hf.hidden = !!room.secret; hf.innerHTML = `🦩 <b>${flamingosFound(room.id)}</b>/${FLAMINGOS}`; hf.classList.toggle("full", flamingosFound(room.id) >= FLAMINGOS); }
   $("hintCount").textContent = ctx.state.hintsUsed || "";
 }
 function tryExit() {
@@ -458,6 +518,14 @@ function openHint() {
   render();
 }
 let current = null;
+// balletto: il ragazzo esulta e gli studenti vicini lo seguono
+let danceT = 0;
+function dance() {
+  if (!player.model || performance.now() - danceT < 900) return; danceT = performance.now();
+  player.model.cheer?.(); sfx.ok();
+  extras.forEach((e, i) => { if (Math.hypot(e.x - player.pos.x, e.z - player.pos.y) < 6) setTimeout(() => e.h.cheer(), 250 + i * 150); });
+  if (teacher && Math.hypot(room.teacher.at[0] - player.pos.x, room.teacher.at[1] - player.pos.y) < 5 && Math.random() < 0.5) setTimeout(() => teacher.cheer?.(), 400);
+}
 function useCurrent() { if (current && !busy()) { sfx.click(); current.use(current); } }
 
 addEventListener("keydown", (e) => {
@@ -477,6 +545,7 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyE") useCurrent();
   if (e.code === "Tab") { e.preventDefault(); $("btnInv").click(); }
   if (e.code === "KeyH") openHint();
+  if (e.code === "KeyB") dance();
   if (e.code === "KeyF") openPhoto();
   if (e.code === "Escape") pause();
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
@@ -507,6 +576,7 @@ if (isTouch) {
   const end = () => { sid = null; knob.style.transform = ""; input.touch.x = input.touch.y = 0; };
   stick.addEventListener("pointerup", end); stick.addEventListener("pointercancel", end);
   $("touchUse").addEventListener("click", () => (ui.dialogOpen ? dialogAdvance() : useCurrent()));
+  $("touchDance").addEventListener("click", () => { if (!busy()) dance(); });
   $("hud").querySelector(".keys").hidden = true;
 }
 
