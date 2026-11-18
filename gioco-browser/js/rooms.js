@@ -20,8 +20,8 @@ export const ROOMS = [
   tasks: [
     { id: "sicurezza", title: "Sicurezza prima di tutto", step: (c) => c.has("camice") ? "Torna dalla prof per il quiz sulla sicurezza" : "Trova camice e occhiali nell'armadio delle protezioni",
       hints: ["Camice e occhiali di solito stanno negli armadi del laboratorio.", "L'armadio delle protezioni è in fondo alla parete degli armadi a vetri, vicino alla cappa.", "Prendi camice e occhiali dall'armadio vicino all'angolo con la cappa, poi parla con la Prof.ssa Ferri (E)."] },
-    { id: "ph", title: "Le provette misteriose", step: () => "Scopri il pH delle tre provette e apri il lucchetto della cappa",
-      hints: ["Il colore della provetta dice quanto è acida: c'è un cartellone che lo spiega.", "Il cartellone del pH è sulla parete del bancone, vicino alla porta d'uscita. Rosso = 1, arancio = 4, verde = 7, blu = 10, viola = 13.", "Provette: A arancio (4), B blu (10), C rossa (1). Dalla più acida alla più basica: 1-4-10 → codice 1410."] },
+    { id: "ph", title: "Le provette misteriose", step: (c) => `Fai l'esperimento sulle 3 provette del bancone (${c.tubesDone ? c.tubesDone() : 0}/3)`,
+      hints: ["Le tre provette sono sul bancone bianco in fondo: avvicinati a ognuna e premi E.", "Il colore dice tutto: rosso o arancio = acido, verde = neutro, blu o viola = basico.", "Limone = acido · acqua = neutro · sapone = basico."] },
   ],
   intro: [
     "Benvenuto nel laboratorio di chimica! Io sono la professoressa Ferri.",
@@ -58,24 +58,49 @@ export const ROOMS = [
     // --- isole bianche con cassetti verde menta al centro della metà nord ---
     c.place(P.labBench(4.2, 1.3), -1.6, -5.2, 0); c.place(P.labBench(4.2, 1.3), -1.6, -2.0, 0); c.place(P.labBench(3.0, 1.3), 2.3, -3.6, PI / 2);
     for (const x of [-3.0, -1.6, -0.2]) { c.place(P.stool(), x, -4.2, 0); c.place(P.stool(), x, -1.0, 0); }
-    const rack = new THREE.Group(); B(rack, 0, 0.05, 0, 0.5, 0.1, 0.14, M.wood); B(rack, 0, 0.16, 0, 0.5, 0.02, 0.14, M.wood);
-    const liquids = [0xfb8c00, 0x1e88e5, 0xe53935].map((col, i) => { const x = -0.15 + i * 0.15; C(rack, x, 0.2, 0, 0.024, 0.3, M.glass, 0.024, 12); const lm = new THREE.MeshStandardMaterial({ color: 0xdfe9ee, emissive: 0x000000, roughness: 0.2, transparent: true, opacity: 0.85 }); C(rack, x, 0.13, 0, 0.021, 0.14, lm, 0.021, 12); return { lm, col: new THREE.Color(col) }; });
-    const dropper = new THREE.Group(); C(dropper, 0, 0.12, 0, 0.012, 0.2, M.glass, 0.006, 10); S(dropper, 0, 0.25, 0, 0.025, mat(0x222222)); dropper.position.set(-0.15, 0.6, 0); dropper.visible = false; rack.add(dropper);
+    // --- esperimento del pH: tre provette da provare una alla volta ---
+    const rack = new THREE.Group(); B(rack, 0, 0.05, 0, 0.62, 0.1, 0.16, M.wood); B(rack, 0, 0.16, 0, 0.62, 0.02, 0.16, M.wood);
     c.place(rack, -0.6, -5.2, 0, { y: 0.95, solid: false });
-    let poured = false;
-    const pour = () => new Promise((res) => { dropper.visible = true; let t = 0; const f = (dt) => { if (t > 3.2) return; t += dt; const i = Math.min(2, Math.floor(t / 1.05)), lt = (t % 1.05) / 1.05; dropper.position.set(-0.15 + i * 0.15, 0.42 - Math.sin(Math.min(1, lt * 2) * Math.PI) * 0.1, 0); if (lt > 0.45) { const L = liquids[i]; L.lm.color.lerp(L.col, 0.12); L.lm.emissive.copy(L.lm.color).multiplyScalar(0.25); } if (t > 3.2) { dropper.visible = false; liquids.forEach((L) => { L.lm.color.copy(L.col); L.lm.emissive.copy(L.col).multiplyScalar(0.25); }); res(); } }; c.anim(f); });
-    c.interact(rack, { label: "Versa l'indicatore nelle provette", range: 2.2, use: async () => { if (!poured) { poured = true; c.toast("Versi qualche goccia di indicatore universale in ogni provetta…"); await pour(); } return c.doc("Portaprovette", `<p>Tre provette con l'<b>indicatore universale</b> già aggiunto:</p><p>🟧 <b>A</b>: arancione &nbsp; 🟦 <b>B</b>: blu &nbsp; 🟥 <b>C</b>: rossa</p><p>Un biglietto: <i>"Il lucchetto della cappa vuole i valori di pH, dalla soluzione più acida alla più basica."</i></p>`); } });
+    const TUBES = [
+      { id: "limone", name: "Succo di limone", emoji: "🍋", col: 0xe53935, colName: "ROSSO", ans: 0, why: "Il limone contiene acido citrico: pH circa 2." },
+      { id: "acqua", name: "Acqua del rubinetto", emoji: "💧", col: 0x43a047, colName: "VERDE", ans: 1, why: "L'acqua pura è neutra: pH 7." },
+      { id: "sapone", name: "Acqua e sapone", emoji: "🧼", col: 0x1e88e5, colName: "BLU", ans: 2, why: "Il sapone è basico: pH circa 10." },
+    ];
+    c.state.tubes = c.state.tubes || {};
+    c.tubesDone = () => Object.keys(c.state.tubes).length;
+    TUBES.forEach((tb, i) => {
+      const g = new THREE.Group();
+      C(g, 0, 0.2, 0, 0.03, 0.32, M.glass, 0.03, 14);
+      const lm = new THREE.MeshStandardMaterial({ color: 0xdfe9ee, emissive: 0x000000, roughness: 0.2, transparent: true, opacity: 0.88 });
+      const liq = C(g, 0, 0.13, 0, 0.026, 0.15, lm, 0.026, 14); // il materiale viene clonato da c.interact: usa sempre liq.material
+      const tag = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.07), new THREE.MeshBasicMaterial({ map: textSign("tube" + i, tb.emoji + " " + tb.name, { bg: "#ffffff", fg: "#222", w: 512, h: 160, font: "bold 52px Inter, sans-serif" }) })); tag.position.set(0, 0.06, 0.09); g.add(tag);
+      const dropper = new THREE.Group(); C(dropper, 0, 0.12, 0, 0.012, 0.2, M.glass, 0.006, 10); S(dropper, 0, 0.25, 0, 0.025, mat(0x222222)); dropper.position.set(0, 0.5, 0); dropper.visible = false; g.add(dropper);
+      const halo = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.075, 24), new THREE.MeshBasicMaterial({ color: 0x66ff88, transparent: true, opacity: 0, side: THREE.DoubleSide })); halo.rotation.x = -Math.PI / 2; halo.position.y = 0.11; g.add(halo);
+      c.place(g, -0.6 + (i - 1) * 0.2, -5.2, 0, { y: 0.97, solid: false });
+      const target = new THREE.Color(tb.col);
+      const pour = () => new Promise((res) => { dropper.visible = true; let t = 0; const f = (dt) => { if (t > 1.6) return; t += dt; dropper.position.y = 0.5 - Math.sin(Math.min(1, t / 0.6) * Math.PI / 2) * 0.12; if (t > 0.6) { liq.material.color.lerp(target, 0.1); liq.material.emissive.copy(liq.material.color).multiplyScalar(0.3); } if (t > 1.6) { dropper.visible = false; liq.material.color.copy(target); liq.material.emissive.copy(target).multiplyScalar(0.3); res(); } }; c.anim(f); });
+      let poured = false;
+      c.interact(g, { label: `Provetta: ${tb.name}`, point: new THREE.Vector3(-0.6 + (i - 1) * 0.2, 0, -4.35), range: 1.8, when: () => !c.state.tubes[tb.id],
+        use: async () => {
+          if (!c.isDone("sicurezza")) { c.prof("Ehi! Prima camice e occhiali, e il quiz sulla sicurezza. Poi facciamo l'esperimento."); return; }
+          if (!poured) { poured = true; c.toast(`Versi due gocce di indicatore nel ${tb.name.toLowerCase()}…`); sfx.pick(); await pour(); }
+          const ok = await c.puzzle({ type: "quiz", kind: "Esperimento", title: `${tb.emoji} ${tb.name}`, body: `<div class="tube-show" style="--c:#${target.getHexString()}"><i></i><span>Con l'indicatore è diventato <b>${tb.colName}</b></span></div><p class="muted" style="margin:6px 0 0">Rosso/arancio = acido · verde = neutro · blu/viola = basico</p>`,
+            questions: [{ q: `Allora il ${tb.name.toLowerCase()} è…`, options: ["🔴 Acido", "🟢 Neutro", "🔵 Basico"], correct: tb.ans, explain: tb.why }] });
+          if (!ok) return;
+          c.state.tubes[tb.id] = true; halo.material.opacity = 0.9; sfx.ok(); c.refresh();
+          if (c.tubesDone() < TUBES.length) { c.toast(`Provette analizzate: ${c.tubesDone()}/${TUBES.length}`); return; }
+          // tutte e tre: la cappa si apre da sola e la chiave salta fuori
+          c.done("ph"); lid.visible = false; keyM.visible = true; let kt = 0; c.anim((dt) => { if (kt > 2) return; kt += dt; keyM.position.y = 1.1 + Math.min(1, kt * 2) * 0.35; keyM.rotation.y += dt * 6; });
+          c.give({ id: "chiave", name: "Chiave del laboratorio", icon: "🗝️", desc: "Era nella cappa" });
+          c.prof("Esperimento riuscito! Acido, neutro e basico: sei un vero chimico. La cappa si è aperta e c'era la chiave: puoi uscire!");
+        } });
+    });
     c.place(P.flask(0x66bb6a), -2.8, -5.2, 0, { y: 0.95, solid: false }); c.place(P.flask(0xab47bc), -1.0, -2.0, 0, { y: 0.95, solid: false });
-    // lucchetto della cappa
-    const lock = new THREE.Group(); B(lock, 0, 0, 0, 0.18, 0.22, 0.06, M.yellow); B(lock, 0, 0.16, 0, 0.12, 0.12, 0.03, M.steel);
-    c.place(lock, -1.4, -D / 2 + 0.92, 0, { y: 1.1, solid: false });
-    c.interact(lock, { label: "Lucchetto della cappa", point: new THREE.Vector3(-1.4, 0, -D / 2 + 1.4), range: 2.2, when: () => !c.isDone("ph"),
-      use: async () => {
-        if (!c.isDone("sicurezza")) { c.prof("Ehi! Prima camice e occhiali, e il quiz sulla sicurezza. Poi apriamo la cappa."); return; }
-        if (await c.puzzle({ type: "code", title: "Lucchetto della cappa", body: `<p>Inserisci i valori di pH delle provette, <b>dalla più acida alla più basica</b>.</p>`, answer: "1410" })) {
-          c.done("ph"); c.give({ id: "chiave", name: "Chiave del laboratorio", icon: "🗝️", desc: "Era nella cappa" }); c.prof("Perfetto! Hai capito come funziona il pH. Nella cappa c'era la chiave: puoi uscire!");
-        }
-      } });
+    // la cappa chiusa con lucchetto: si apre quando l'esperimento è completo
+    const lid = new THREE.Group(); B(lid, 0, 0, 0, 0.18, 0.22, 0.06, M.yellow); B(lid, 0, 0.16, 0, 0.12, 0.12, 0.03, M.steel);
+    c.place(lid, -1.4, -D / 2 + 0.92, 0, { y: 1.1, solid: false });
+    const keyM = new THREE.Group(); B(keyM, 0, 0, 0, 0.04, 0.16, 0.015, mat(0xf2c21b, { metal: 0.8, rough: 0.3 })); C(keyM, 0, 0.1, 0, 0.04, 0.015, mat(0xf2c21b, { metal: 0.8, rough: 0.3 }), 0.04, 16).rotation.x = Math.PI / 2;
+    keyM.visible = false; c.place(keyM, -1.4, -D / 2 + 1.0, 0, { y: 1.1, solid: false });
     // --- metà sud: zona teoria con file di tavoli e schermo di proiezione ---
     for (let r = 0; r < 3; r++) for (const x of [-2.8, 1.0]) { c.place(P.table(3.0, 0.6, M.lightwood, M.darkgrey), x, 2.9 + r * 1.5, 0); for (const dx of [-1, 0, 1]) c.place(P.chair(M.black), x + dx * 0.95, 2.4 + r * 1.5, 0); }
     c.place(P.projectionScreen(2.6, 1.6), -0.9, D / 2 - 0.08, PI, { y: 2.1, solid: false });
@@ -89,10 +114,10 @@ export const ROOMS = [
         if (await c.puzzle({ type: "quiz", kind: "Quiz della prof", title: "Sicurezza in laboratorio", questions: [
           { q: "Sull'armadio giallo c'è il simbolo della fiamma. Cosa vuol dire?", options: ["Che dentro fa caldo", "Che contiene sostanze infiammabili", "Che è un forno"], correct: 1, explain: "Le sostanze infiammabili prendono fuoco facilmente." },
           { q: "Se una goccia di reagente ti finisce sulla mano, cosa fai?", options: ["Niente, si asciuga", "La pulisco sui vestiti", "Lavo subito con tanta acqua e avviso il prof"], correct: 2, explain: "Acqua abbondante e avvisare subito l'insegnante." },
-        ] })) { c.done("sicurezza"); c.prof("Bravissimo! Adesso l'esperimento: nel portaprovette ci sono tre soluzioni misteriose. Usa il cartellone del pH e apri il lucchetto della cappa."); }
+        ] })) { c.done("sicurezza"); c.prof("Bravissimo! Adesso l'esperimento: nel portaprovette ci sono tre soluzioni misteriose. Versa l'indicatore in ognuna e scopri se è acida, neutra o basica!"); }
       } }];
     }
-    if (!c.isDone("ph")) return ["Ogni colore dell'indicatore corrisponde a un pH. Il cartellone è sulla parete di sinistra; il lucchetto è sulla cappa."];
+    if (!c.isDone("ph")) return [`Hai analizzato ${c.tubesDone()} provette su 3. Rosso = acido, verde = neutro, blu = basico!`];
     return ["Ora sai usare un indicatore come un vero chimico. La porta USCITA è aperta!"];
   },
   curiosity: "Nel laboratorio di chimica dell'Othoca si lavora con cappe aspiranti, bilance di precisione e microscopi. Il pH si misura anche negli stagni intorno a Oristano per controllare la salute dell'acqua!",

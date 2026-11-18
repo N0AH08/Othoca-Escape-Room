@@ -453,7 +453,7 @@ function leaveRoom() { $("autoHint").hidden = true; stopAmbience(); camFocus.tar
 // ---------- segnalini delle sfide: rombo rosa sopra le cose da usare per l'obiettivo corrente ----------
 const TASK_TARGETS = {
   segreta: { parola: ["lavagna", "Scrigno"], quiz: ["Computer"] },
-  chimica: { sicurezza: (c) => c.has("camice") ? ["Parla con"] : ["armadio delle protezioni"], ph: ["portaprovette", "cartellone del pH", "Lucchetto"] },
+  chimica: { sicurezza: (c) => c.has("camice") ? ["Parla con"] : ["armadio delle protezioni"], ph: ["Provetta"] },
   officina: { disegno: ["disegno tecnico", "CNC"], tornio: ["cartello di sicurezza", "Tornio n.1"] },
   pneumatica: { schema: ["schema pneumatico", "Collega i tubi"], ciclo: ["START"] },
   zoomate: { uccelli: ["Guarda la foto", "tavolo touch", "Abbina"], catena: ["catena alimentare"] },
