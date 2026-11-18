@@ -248,3 +248,11 @@ kbd { font: 700 12px Inter, sans-serif; padding: 2px 7px; border-radius: 6px; ba
 .tro b { display: block; font-size: 28px; } .tro span { display: block; font-weight: 700; font-size: 13px; margin-top: 2px; } .tro small { display: block; font-size: 11px; opacity: .7; margin-top: 2px; line-height: 1.25; }
 .win-pos { text-align: center; font: 700 17px "Baloo 2", sans-serif; color: #ffca28; margin-top: 2px; }
 #banner { z-index: 30 !important; }
+.creator { display: flex; gap: 16px; align-items: center; margin: 6px 0 8px; }
+.creator .avatar { flex: 0 0 auto; width: 120px; height: 140px; display: grid; place-items: center; border-radius: 18px; background: radial-gradient(circle at 50% 30%, rgba(240,85,154,.25), rgba(255,255,255,.03)); }
+.picks { flex: 1; display: grid; gap: 8px; }
+.pick { display: flex; align-items: center; gap: 10px; } .pick > span { width: 78px; font-size: 13px; font-weight: 600; opacity: .8; }
+.pick > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); cursor: pointer; padding: 0; transition: transform .12s; }
+.sw:hover { transform: scale(1.12); } .sw.on { border-color: #fff; box-shadow: 0 0 0 3px #f0559a; }
+@media (max-width: 520px) { .creator { flex-direction: column; } }

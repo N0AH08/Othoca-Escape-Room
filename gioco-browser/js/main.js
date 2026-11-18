@@ -1,5 +1,5 @@
 // Flusso del gioco: menu → ingresso 360° → mappa → escape room → vittoria → mappa.
-import { THREE, renderer, camera, world, gfx, setQuality, preloadImages, newScene, buildShell, door, place, addCollider, addFloor, confetti, camFocus, makeHuman, nameTag, spawnPlayer, updatePlayer, player, input, look, addInteractable, findInteractable, highlight, removeInteractable, beacon, render } from "./world.js";
+import { THREE, heightAt, renderer, camera, world, gfx, setQuality, preloadImages, newScene, buildShell, door, place, addCollider, addFloor, confetti, camFocus, makeHuman, nameTag, spawnPlayer, updatePlayer, player, input, look, addInteractable, findInteractable, highlight, removeInteractable, beacon, render } from "./world.js";
 import { ROOMS } from "./rooms.js";
 import * as P from "./props.js";
 import { DECOR } from "./decor.js";
@@ -33,7 +33,7 @@ const starsFor = (t, hints) => (hints === 0 && t < 240 ? 3 : hints <= 2 && t < 4
 const totalStars = () => Object.values(progress.rooms).reduce((a, r) => a + (r.stars || 1), 0);
 const RANKS = [[0, "Matricola curiosa"], [6, "Apprendista di laboratorio"], [12, "Tecnico in erba"], [18, "Esperto Othoca"], [24, "Leggenda dell'Othoca"]];
 const rankOf = (n) => RANKS.filter(([k]) => n >= k).pop()[1];
-function refreshMenuStars() { const el = $("menuStars"); if (el) el.innerHTML = `<b>${totalStars()}</b> / ${ROOMS.length * 3} ⭐`; const w = $("menuWho"); if (w) { w.hidden = !progress.name; w.innerHTML = `Ciao <b>${esc(progress.name || "")}</b>! · ${esc(rankOf(totalStars()))} · <a href="#" data-act="player">non sei tu?</a>`; } }
+function refreshMenuStars() { const el = $("menuStars"); if (el) el.innerHTML = `<b>${totalStars()}</b> / ${ROOMS.length * 3} ⭐`; const w = $("menuWho"); if (w) { w.hidden = !progress.name; w.innerHTML = `Ciao <b>${esc(progress.name || "")}</b>! · ${esc(rankOf(totalStars()))} · <a href="#" data-act="look">cambia look</a> · <a href="#" data-act="player">non sei tu?</a>`; } }
 (function sparks() { const m = $("menu"); for (let i = 0; i < 22; i++) { const sp = document.createElement("i"); sp.className = "spark"; sp.style.left = Math.random() * 100 + "%"; sp.style.animationDuration = 8 + Math.random() * 10 + "s"; sp.style.animationDelay = -Math.random() * 15 + "s"; const sz = 3 + Math.random() * 5; sp.style.width = sp.style.height = sz + "px"; m.appendChild(sp); } })();
 function showBanner(title, sub = "") { const b = $("banner"); b.innerHTML = `<div class="bn">${esc(title)}${sub ? `<small>${esc(sub)}</small>` : ""}</div>`; b.hidden = false; clearTimeout(showBanner.t); showBanner.t = setTimeout(() => (b.hidden = true), 2300); }
 function showRoomTitle(def) { const r = $("roomTitle"); r.innerHTML = `<div class="rt"><small>${esc(def.indirizzo)}</small><h2>${esc(def.name)}</h2><div>${def.tasks.length} sfide · ${def.teacher.name}</div></div>`; r.hidden = false; setTimeout(() => (r.hidden = true), 2900); }
@@ -56,12 +56,32 @@ function checkTrophies(run) {
   got.forEach((x, i) => { progress.trophies.push(x.id); setTimeout(() => { sfx.ok(); showBanner(`${x.icon} TROFEO SBLOCCATO!`, x.t); }, 2600 + i * 2500); });
   save(SAVE_KEY, progress); return got;
 }
+const LOOKS = {
+  shirt: [0x2f6fd6, 0xe0245e, 0x2e9d5b, 0xf2a71b, 0x7b3fc4, 0x1d1f26, 0xf4f4f4],
+  hair: [0x3a2516, 0x14110f, 0x8a5a2b, 0xd9a441, 0xb5432a],
+  skinTone: [0xf3cba5, 0xe8b48e, 0xc98e66, 0x9c6644, 0x6b4430],
+  pants: [0x3c5a85, 0x23262e, 0x6b6f78, 0x5c4a3a],
+};
+const css = (n) => "#" + n.toString(16).padStart(6, "0");
+function avatarSvg(l) {
+  return `<svg viewBox="0 0 100 120" width="110" height="132"><rect x="30" y="92" width="16" height="26" rx="5" fill="${css(l.pants)}"/><rect x="54" y="92" width="16" height="26" rx="5" fill="${css(l.pants)}"/>
+  <rect x="22" y="58" width="56" height="40" rx="14" fill="${css(l.shirt)}"/><rect x="12" y="62" width="14" height="30" rx="7" fill="${css(l.skinTone)}"/><rect x="74" y="62" width="14" height="30" rx="7" fill="${css(l.skinTone)}"/>
+  <rect x="11" y="60" width="16" height="14" rx="7" fill="${css(l.shirt)}"/><rect x="73" y="60" width="16" height="14" rx="7" fill="${css(l.shirt)}"/>
+  <rect x="26" y="10" width="48" height="50" rx="20" fill="${css(l.skinTone)}"/><path d="M24 34 Q24 6 50 6 Q76 6 76 34 L72 24 Q60 16 40 20 L28 30 Z" fill="${css(l.hair)}"/>
+  <circle cx="41" cy="36" r="3.2" fill="#222"/><circle cx="59" cy="36" r="3.2" fill="#222"/><path d="M43 48 Q50 53 57 48" stroke="#7a3b2e" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <circle cx="50" cy="76" r="8" fill="#fff"/><circle cx="50" cy="76" r="5" fill="#f0559a"/></svg>`;
+}
 function askName(then) {
-  const p = modal(`<div class="eyebrow">Nuovo giocatore</div><h2>Come ti chiami?</h2><p class="muted">Il tuo nome comparirà nella classifica dell'open day.</p>
-    <input class="name-in" data-n maxlength="14" placeholder="Il tuo nome" autocomplete="off" spellcheck="false" value="${esc(progress.name || "")}">
+  const l = Object.assign({ shirt: LOOKS.shirt[0], hair: LOOKS.hair[0], skinTone: LOOKS.skinTone[1], pants: LOOKS.pants[0] }, progress.look || {});
+  const row = (k, label) => `<div class="pick"><span>${label}</span><div>${LOOKS[k].map((c) => `<button class="sw ${c === l[k] ? "on" : ""}" data-k="${k}" data-c="${c}" style="background:${css(c)}"></button>`).join("")}</div></div>`;
+  const p = modal(`<div class="eyebrow">Nuovo giocatore</div><h2>Crea il tuo personaggio</h2>
+    <div class="creator"><div class="avatar" data-av>${avatarSvg(l)}</div><div class="picks">${row("shirt", "Maglietta")}${row("hair", "Capelli")}${row("skinTone", "Pelle")}${row("pants", "Pantaloni")}</div></div>
+    <input class="name-in" data-n maxlength="14" placeholder="Come ti chiami?" autocomplete="off" spellcheck="false" value="${esc(progress.name || "")}">
+    <p class="muted" style="text-align:center;margin:4px 0 0;font-size:13px">Il tuo nome comparirà nella classifica dell'open day.</p>
     <div class="row"><button class="btn primary" data-ok>Iniziamo! →</button></div>`, { closable: false });
+  p.querySelectorAll(".sw").forEach((b) => (b.onclick = () => { sfx.click(); l[b.dataset.k] = +b.dataset.c; p.querySelectorAll(`.sw[data-k="${b.dataset.k}"]`).forEach((x) => x.classList.toggle("on", x === b)); p.querySelector("[data-av]").innerHTML = avatarSvg(l); }));
   const inp = p.querySelector("[data-n]"); setTimeout(() => inp.focus(), 50);
-  const go = () => { const v = inp.value.trim().replace(/\s+/g, " ").slice(0, 14); if (!v) { inp.classList.add("shake"); setTimeout(() => inp.classList.remove("shake"), 400); return; } progress.name = v; save(SAVE_KEY, progress); closeModal(); refreshMenuStars(); then && then(); };
+  const go = () => { const v = inp.value.trim().replace(/\s+/g, " ").slice(0, 14); if (!v) { inp.classList.add("shake"); setTimeout(() => inp.classList.remove("shake"), 400); return; } progress.name = v; progress.look = l; save(SAVE_KEY, progress); closeModal(); refreshMenuStars(); then && then(); };
   p.querySelector("[data-ok]").onclick = go; inp.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") go(); });
 }
 function newPlayer() {
@@ -87,11 +107,12 @@ function showBoard(sel) {
 
 // ---------- menu ----------
 $("menu").addEventListener("click", (e) => {
-  const a = e.target.closest("[data-act]")?.dataset.act; if (!a) return;
+  const a = e.target.closest("[data-act]")?.dataset.act; if (!a) return; e.preventDefault();
   unlockAudio(); sfx.click();
   if (a === "play") { if (progress.name) openHub(); else askName(openHub); }
   if (a === "board") showBoard();
   if (a === "player") newPlayer();
+  if (a === "look") askName();
   if (a === "settings") showSettings(settings, applySettings);
   if (a === "credits") showCredits();
 });
@@ -181,7 +202,7 @@ function buildRoom(def) {
     has: (id) => !!st.inv.find((x) => x.id === id),
     take: (id) => { st.inv = st.inv.filter((x) => x.id !== id); refreshHud(); },
     items: () => st.inv.slice(),
-    done: (tid) => { if (st.done[tid]) return; st.done[tid] = true; sfx.ok(); confetti(player.pos.x, player.y + 2.2, player.pos.y); const t = def.tasks.find((x) => x.id === tid); showBanner("SFIDA COMPLETATA!", t.title); refreshHud(); },
+    done: (tid) => { if (st.done[tid]) return; st.done[tid] = true; sfx.ok(); confetti(player.pos.x, player.y + 2.2, player.pos.y); const t = def.tasks.find((x) => x.id === tid); showBanner("SFIDA COMPLETATA!", t.title); teacher.cheer?.(); player.model?.cheer?.(); extras.forEach((e, i) => setTimeout(() => e.h.cheer(), 150 + i * 120)); refreshHud(); },
     isDone: (tid) => !!st.done[tid],
     toast, refresh: () => refreshHud(),
     doc: (t, h) => readDoc(t, h), canvasDoc: (t, cnv, note) => canvasDoc(t, cnv, note),
@@ -211,7 +232,8 @@ function buildRoom(def) {
   world.npcs.push({ h: teacher, x: T.at[0], z: T.at[1] });
   def.build(ctx);
   if (DECOR[def.id]) DECOR[def.id](ctx);
-  spawnPlayer(def.spawn[0], def.spawn[1], def.spawn[2], hasTeacherModel() ? makeBoy : hasModel() ? makeSkinned : null);
+  spawnPlayer(def.spawn[0], def.spawn[1], def.spawn[2], hasTeacherModel() ? () => makeBoy(progress.look || {}) : hasModel() ? makeSkinned : null);
+  addExtras(def, exitPoint);
   buildMarkers();
   guide = beacon();
   $("hudRoom").textContent = def.name; $("hudIndirizzo").textContent = def.indirizzo;
@@ -226,6 +248,58 @@ function buildRoom(def) {
     if (state !== "room" || room !== def) return;
     talkLines(def.intro, () => { introDone = true; timing = true; refreshHud(); });
   }, 1700);
+}
+// ---------- compagni di classe: 2-3 studenti che lavorano nella stanza ----------
+let extras = [];
+const EX_SHIRTS = [0xe0245e, 0x2e9d5b, 0xf2a71b, 0x7b3fc4, 0x1d1f26, 0x4fa3e0, 0xc0392b, 0x8d6e63], EX_HAIR = [0x14110f, 0x3a2516, 0x8a5a2b, 0xd9a441], EX_SKIN = [0xf3cba5, 0xe8b48e, 0xc98e66, 0x9c6644];
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+function distToRect(x, z, c) { const dx = Math.max(c.x0 - x, 0, x - c.x1), dz = Math.max(c.z0 - z, 0, z - c.z1); return Math.hypot(dx, dz); }
+// tutti gli obiettivi restano raggiungibili? (griglia da 20 cm, giocatore largo 30 cm)
+function reachableAll(targets, spawn) {
+  const b = world.bounds, S = 0.2, nx = Math.ceil((b.x1 - b.x0) / S) + 1, nz = Math.ceil((b.z1 - b.z0) / S) + 1;
+  const free = new Uint8Array(nx * nz), seen = new Uint8Array(nx * nz);
+  for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) { const x = b.x0 + i * S, z = b.z0 + j * S; let ok = true; for (const c of world.colliders) if (distToRect(x, z, c) < 0.29) { ok = false; break; } free[i * nz + j] = ok ? 1 : 0; }
+  const cell = (x, z) => [Math.round((x - b.x0) / S), Math.round((z - b.z0) / S)];
+  let [si, sj] = cell(spawn[0], spawn[1]); const q = [];
+  // il punto di partenza può essere vicino a un arredo: prendi la cella libera più vicina
+  let best = null, bd = 1e9; for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) if (free[i * nz + j]) { const d = (i - si) ** 2 + (j - sj) ** 2; if (d < bd) { bd = d; best = [i, j]; } }
+  if (!best) return false; q.push(best); seen[best[0] * nz + best[1]] = 1;
+  while (q.length) { const [i, j] = q.pop(); for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, c = j + dj; if (a < 0 || c < 0 || a >= nx || c >= nz) continue; const k = a * nz + c; if (seen[k] || !free[k]) continue; seen[k] = 1; q.push([a, c]); } }
+  return targets.every(([x, z, r]) => { for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) if (seen[i * nz + j] && Math.hypot(b.x0 + i * S - x, b.z0 + j * S - z) <= r) return true; return false; });
+}
+function addExtras(def, exitPoint) {
+  extras = [];
+  if (!hasTeacherModel() || !world.bounds) return;
+  const v = new THREE.Vector3();
+  const targets = world.interactables.filter((it) => !it.removed).map((it) => { const p = it.point || it.obj.getWorldPosition(v); return [p.x, p.z, Math.min(it.range, 1.8) - 0.1]; });
+  targets.push([exitPoint.x, exitPoint.z, 1.2]);
+  if (!reachableAll(targets, def.spawn)) return; // stanza già stretta: niente comparse
+  const want = def.id === "palestra" || def.id === "teatro" ? 3 : 2, b = world.bounds;
+  const busy = [[def.spawn[0], def.spawn[1], 2.4], [def.teacher.at[0], def.teacher.at[1], 1.8], [exitPoint.x, exitPoint.z, 1.8], ...targets.map(([x, z]) => [x, z, 1.4])];
+  for (let tries = 0; tries < 260 && extras.length < want; tries++) {
+    const x = b.x0 + 0.5 + Math.random() * (b.x1 - b.x0 - 1), z = b.z0 + 0.5 + Math.random() * (b.z1 - b.z0 - 1);
+    if (Math.abs(heightAt(x, z)) > 0.01) continue;
+    if (busy.some(([bx, bz, r]) => Math.hypot(x - bx, z - bz) < r)) continue;
+    let near = null, nd = 9; for (const c of world.colliders) { const d = distToRect(x, z, c); if (d < 0.42) { near = "x"; break; } if (d < nd) { nd = d; near = c; } }
+    if (near === "x" || !near || nd > 1.0) continue; // accanto a un banco, non in mezzo alla stanza
+    const col = { x0: x - 0.24, z0: z - 0.24, x1: x + 0.24, z1: z + 0.24 }; world.colliders.push(col);
+    if (!reachableAll(targets, def.spawn)) { world.colliders.pop(); continue; }
+    const female = Math.random() < 0.5;
+    const h = makeTeacher({ female, hairLong: female, shirt: pick(EX_SHIRTS), sleeves: Math.random() < 0.5 ? "short" : undefined, pants: pick([0x3c5a85, 0x23262e, 0x6b6f78]), shoes: pick([0xf2f2f2, 0x1c1c1c, 0xe0245e]), hair: pick(EX_HAIR), skinTone: pick(EX_SKIN) });
+    h.root.scale.setScalar(0.92 + Math.random() * 0.05);
+    const cx = (near.x0 + near.x1) / 2, cz = (near.z0 + near.z1) / 2; const px = Math.max(near.x0, Math.min(near.x1, x)), pz = Math.max(near.z0, Math.min(near.z1, z));
+    h.root.position.set(x, 0, z); h.root.rotation.y = Math.atan2(px - x, pz - z) || Math.atan2(cx - x, cz - z);
+    world.scene.add(h.root); busy.push([x, z, 1.3]);
+    const ex = { h, x, z, base: h.root.rotation.y, t: Math.random() * 6 };
+    world.animated.push((dt) => {
+      ex.t += dt; h.animate(dt, 0);
+      // ogni tanto alza lo sguardo verso il giocatore, poi torna al lavoro
+      const dx = player.pos.x - x, dz = player.pos.y - z, d = Math.hypot(dx, dz);
+      const curious = d < 3.5 && Math.sin(ex.t * 0.5) > 0.2;
+      if (curious) { const rel = Math.atan2(dx, dz) - h.root.rotation.y; h.lookAt(Math.atan2(Math.sin(rel), Math.cos(rel)), 0); } else h.lookAt(0, 0.25);
+    });
+    extras.push(ex);
+  }
 }
 function talkLines(arr, onEnd) {
   const T = room.teacher; const thens = [];
@@ -251,7 +325,7 @@ function refreshHud() {
 function tryExit() {
   const left = room.tasks.filter((t) => !ctx.state.done[t.id]).length;
   if (left) { sfx.lock(); toast(`La porta è chiusa. Completa prima le sfide (${room.tasks.length - left}/${room.tasks.length}).`); return; }
-  exitDoor.open(); sfx.door(); timing = false; confetti(player.pos.x, player.y + 2.4, player.pos.y, 160);
+  exitDoor.open(); sfx.door(); timing = false; player.model.cheer?.(); teacher.cheer?.(); confetti(player.pos.x, player.y + 2.4, player.pos.y, 160);
   setTimeout(win, 1300);
 }
 function win() {

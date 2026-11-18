@@ -148,6 +148,7 @@ export function makeSkinned(look = {}) {
       if (waving && bones.RightArm) { bones.RightArm.rotation.z += -2.0; bones.RightArm.rotation.x += -0.3; bones.RightForeArm.rotation.z += 0.6 + Math.sin(t * 9) * 0.35; }
     },
     wave() { waving = true; }, rest() { waving = false; }, talk() { talking = 1; },
+    cheer() {},
     lookAt(dx, dy) { look2.x += (Math.max(-0.6, Math.min(0.6, dx)) - look2.x) * 0.1; look2.y += (Math.max(-0.3, Math.min(0.3, -dy)) - look2.y) * 0.1; },
   };
   return api;
@@ -159,9 +160,9 @@ let kBase = null, kClips = {};
 export async function loadTeacherModel() {
   try {
     const L = new FBXLoader();
-    const [m, idle, run] = await Promise.all(["characterMedium", "idle", "run"].map((f) => L.loadAsync(`lib/models/kenney/${f}.fbx`)));
-    kBase = m; kClips.idle = idle.animations.find((a) => /Idle/.test(a.name)); kClips.run = run.animations.find((a) => /Run/.test(a.name));
-    for (const cl of [kClips.idle, kClips.run]) cl.tracks = cl.tracks.filter((t) => !t.name.endsWith(".scale")); // le animazioni non devono toccare la scala delle ossa
+    const [m, idle, run, jump] = await Promise.all(["characterMedium", "idle", "run", "jump"].map((f) => L.loadAsync(`lib/models/kenney/${f}.fbx`)));
+    kBase = m; kClips.idle = idle.animations.find((a) => /Idle/.test(a.name)); kClips.run = run.animations.find((a) => /Run/.test(a.name)); kClips.jump = jump.animations[0];
+    for (const cl of [kClips.idle, kClips.run, kClips.jump].filter(Boolean)) cl.tracks = cl.tracks.filter((t) => !t.name.endsWith(".scale")); // le animazioni non devono toccare la scala delle ossa
     kBase.baseSkin = await new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = "lib/models/kenney/skaterMaleA.png"; });
   } catch (e) { kBase = null; }
 }
@@ -183,6 +184,7 @@ async function teacherSkin(look) {
     else if (r < 110 && r > 50 && gg < 45 && b < 40) { d[i] = hr[0]; d[i + 1] = hr[1]; d[i + 2] = hr[2]; } // capelli
   }
   g.putImageData(id, 0, 0);
+  { const sc = rgb(skinHex); g.fillStyle = `rgb(${sc[0]},${sc[1]},${sc[2]})`; g.beginPath(); g.ellipse(270, 196, 9, 8, 0, 0, 7); g.fill(); } // graffietto bianco del modello
   // maglia / giacca (riquadro del busto e delle maniche)
   const top = hex(look.coat || look.shirt);
   g.fillStyle = top; g.fillRect(0, 490, 611, 534);
@@ -208,8 +210,15 @@ async function teacherSkin(look) {
   if (look.beard && !look.face) { const bc = hex(look.beardColor || look.hair || 0x2a221c); g.fillStyle = bc; g.globalAlpha = 0.85; g.beginPath(); g.ellipse(322, 300, 95, 60, 0, 0, Math.PI); g.fill(); g.beginPath(); g.ellipse(322, 285, 40, 10, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
   // foto del viso sul lato frontale della testa
   if (look.face) { const f = await loadImg(look.face); if (f) { g.fillStyle = hex(skin.getHex()); g.beginPath(); g.ellipse(322, 225, 92, 120, 0, 0, 7); g.fill(); g.drawImage(f, 322 - 100, 225 - 140, 200, 280); } }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.flipY = true;
-  return t;
+  const mk = (cv) => { const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.flipY = true; return t; };
+  const base = mk(c);
+  if (look.face) return { base, blink: base, talk: base };
+  // varianti per l'animazione del viso: occhi chiusi e bocca aperta
+  const variant = (draw) => { const v = document.createElement("canvas"); v.width = v.height = 1024; const vg = v.getContext("2d"); vg.drawImage(c, 0, 0); draw(vg); return mk(v); };
+  const skinCss = hex(skin.getHex());
+  const blink = variant((vg) => { vg.fillStyle = skinCss; for (const x of [287, 356]) { vg.beginPath(); vg.ellipse(x, 219, 14, 13, 0, 0, 7); vg.fill(); } vg.strokeStyle = "#3a2018"; vg.lineWidth = 4; vg.lineCap = "round"; for (const x of [287, 356]) { vg.beginPath(); vg.moveTo(x - 10, 221); vg.quadraticCurveTo(x, 227, x + 10, 221); vg.stroke(); } });
+  const talk = variant((vg) => { vg.fillStyle = skinCss; vg.beginPath(); vg.ellipse(318, 274, 34, 18, 0, 0, 7); vg.fill(); vg.fillStyle = "#5a1e1e"; vg.beginPath(); vg.ellipse(322, 279, 15, 10, 0, 0, 7); vg.fill(); vg.fillStyle = "#e8e8e8"; vg.fillRect(312, 270, 20, 4); });
+  return { base, blink, talk };
 }
 export function makeTeacher(look = {}) {
   const root = new THREE.Group();
@@ -217,12 +226,15 @@ export function makeTeacher(look = {}) {
   const bones = {}; let mesh = null;
   model.traverse((o) => { if (o.isBone) bones[o.name] = o; if (o.isMesh) { mesh = o; o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; } });
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75 }); mesh.material = m;
-  teacherSkin(look).then((t) => { const cur = mesh.material; cur.map = t; cur.needsUpdate = true; m.map = t; });
+  let skins = null; teacherSkin(look).then((t) => { skins = t; const cur = mesh.material; cur.map = t.base; cur.needsUpdate = true; m.map = t.base; });
+  let blinkT = 2 + Math.random() * 3, mouthT = 0, cheerT = 0;
   // altezza ~1.72 m
   const b = new THREE.Box3().setFromObject(model); const h = b.max.y - b.min.y || 376; model.scale.multiplyScalar(1.72 / h); model.position.y = -b.min.y * (1.72 / h);
   const mixer = new THREE.AnimationMixer(model);
   const A = { idle: mixer.clipAction(kClips.idle), run: mixer.clipAction(kClips.run) };
   A.idle.play(); A.run.play(); A.run.setEffectiveWeight(0);
+  if (kClips.jump) { A.jump = mixer.clipAction(kClips.jump); A.jump.setLoop(THREE.LoopOnce, 1); A.jump.clampWhenFinished = false; }
+  A.idle.time = Math.random() * kClips.idle.duration; // ognuno respira con il suo ritmo
   let wRun = 0, talking = 0, waving = false, look2 = { x: 0, y: 0 };
   if (bones.Head) bones.Head.scale.setScalar(0.74); // testa meno da cartone, proporzioni più reali
   const headG = new THREE.Group(); if (bones.Head) bones.Head.add(headG);
@@ -231,12 +243,30 @@ export function makeTeacher(look = {}) {
     root, head: headG,
     animate(dt, speed) {
       wRun += ((speed > 0.15 ? 1 : 0) - wRun) * (1 - Math.exp(-dt * 8)); A.run.setEffectiveWeight(wRun); A.idle.setEffectiveWeight(1 - wRun); A.run.timeScale = Math.max(0.5, speed / 4);
+      if (cheerT > 0) { cheerT -= dt; A.idle.setEffectiveWeight(Math.min(1 - wRun, cheerT > 0.3 ? 0.2 : 1 - wRun)); }
       mixer.update(dt); talking = Math.max(0, talking - dt * 2.5); const t = performance.now() / 1000;
+      // viso: occhi che sbattono, bocca che si muove quando parla
+      if (skins) {
+        blinkT -= dt; mouthT -= dt;
+        let map = skins.base;
+        if (talking > 0.05) { if (mouthT < -0.12) mouthT = 0.07 + Math.random() * 0.1; if (mouthT > 0) map = skins.talk; }
+        if (blinkT < 0) { map = skins.blink; if (blinkT < -0.13) blinkT = 2.2 + Math.random() * 3.5; }
+        if (mesh.material.map !== map) mesh.material.map = map;
+      }
+      // esultanza: braccia al cielo
+      if (cheerT > 0 && bones.RightArm && bones.LeftArm) { const k = Math.min(1, cheerT * 3, (1.8 - cheerT) * 4); const sh = Math.sin(t * 14) * 0.15; const A1 = 1.8, Z1 = 0.6; bones.RightArm.rotation.x -= (A1 + sh) * k; bones.LeftArm.rotation.x += (A1 - sh) * k; bones.RightArm.rotation.z -= Z1 * k; bones.LeftArm.rotation.z -= Z1 * k; }
       if (bones.Head) { bones.Head.rotation.y += look2.x; bones.Head.rotation.x += look2.y + (talking > 0.05 ? Math.sin(t * 5) * 0.07 * talking : 0); }
-      if (talking > 0.05 && bones.RightForeArm && !waving) { bones.RightArm.rotation.x += (-0.5 + Math.sin(t * 3) * 0.2) * talking; bones.RightForeArm.rotation.x += (-0.8 + Math.sin(t * 4.3) * 0.25) * talking; }
-      if (waving && bones.RightArm) { bones.RightArm.rotation.z += 2.0; bones.RightForeArm.rotation.z += 0.5 + Math.sin(t * 9) * 0.35; }
+      if (talking > 0.05 && bones.RightForeArm && !waving && cheerT <= 0) {
+        // gesti mentre spiega: le due mani si alternano
+        const a = (Math.sin(t * 1.3) + 1) / 2;
+        bones.RightArm.rotation.x += (-0.5 + Math.sin(t * 3) * 0.2) * talking * (0.4 + a * 0.6); bones.RightForeArm.rotation.x += (-0.9 + Math.sin(t * 4.3) * 0.3) * talking * (0.4 + a * 0.6);
+        if (bones.LeftForeArm) { bones.LeftArm.rotation.x += (-0.4 + Math.sin(t * 2.6 + 1) * 0.2) * talking * (1 - a * 0.7); bones.LeftForeArm.rotation.x += (-0.8 + Math.sin(t * 3.7 + 2) * 0.3) * talking * (1 - a * 0.7); }
+        if (bones.Spine) bones.Spine.rotation.y += Math.sin(t * 1.1) * 0.06 * talking;
+      }
+      if (waving && bones.RightArm && cheerT <= 0) { bones.RightArm.rotation.x -= 1.9; bones.RightArm.rotation.z -= 1.2; bones.RightForeArm.rotation.z += Math.sin(t * 9) * 0.45; }
     },
     wave() { waving = true; }, rest() { waving = false; }, talk() { talking = 1; },
+    cheer() { cheerT = 1.8; if (A.jump) { A.jump.reset(); A.jump.setEffectiveWeight(1); A.jump.play(); } },
     lookAt(dx, dy) { look2.x += (Math.max(-0.6, Math.min(0.6, dx)) - look2.x) * 0.1; look2.y += (Math.max(-0.3, Math.min(0.3, -dy)) - look2.y) * 0.1; },
   };
 }
@@ -320,8 +350,8 @@ export function makeExplorer(look = {}) {
 }
 
 // ---------- personaggio principale: un ragazzo con lo zaino dell'Othoca ----------
-export function makeBoy() {
-  const api = makeTeacher({ shirt: 0x2f6fd6, sleeves: "short", pants: 0x3c5a85, shoes: 0xf2f2f2, hair: 0x3a2516, skinTone: 0xe8b48e });
+export function makeBoy(o = {}) {
+  const api = makeTeacher(Object.assign({ shirt: 0x2f6fd6, sleeves: "short", pants: 0x3c5a85, shoes: 0xf2f2f2, hair: 0x3a2516, skinTone: 0xe8b48e }, o));
   let chest = null; api.root.traverse((o) => { if (o.isBone && (o.name === "Chest" || o.name === "UpperChest") && !chest) chest = o; });
   if (chest) {
     api.root.updateMatrixWorld(true);
