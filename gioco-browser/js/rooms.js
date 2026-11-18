@@ -356,29 +356,29 @@ export const ROOMS = [
   spawn: [3.3, -2.5, -PI / 2], exit: { side: "e", z: -2.6, color: 0x2f5f4a, glass: true }, entry: null,
   teacher: { name: "Prof.ssa Martini", role: "Lettere e Matematica", photo: "foto/prof/martini.jpg", face: "foto/prof/face_martini.png", at: [-3.9, -2.2], look: { female: true, shirt: 0xf3e9dc, coat: 0x1c1c1f, pants: 0x2b2f3a, hair: 0xc98a4e, hairStyle: "curly", skinTone: 0xd6a08a, necklace: 0xd4a017 } },
   tasks: [
-    { id: "verifica", title: "La verifica a sorpresa", step: (c) => `Trova le 4 domande nascoste nell'aula (${c.digits()}/4)`,
-      hints: ["Le domande sono su lavagna, cartina, libro e cartellone di inglese.", "Lavagna accanto alla LIM, cartina e cartellone di inglese sulla parete in fondo, libro su un banco.", "Le cifre sono: Matematica 6 · Italiano 3 · Storia 8 · Inglese 7."] },
-    { id: "cassetto", title: "Il cassetto della cattedra", step: () => "Apri il cassetto della cattedra con le 4 cifre",
-      hints: ["Sul registro c'è scritto l'ordine delle materie.", "Ordine: Matematica, Italiano, Storia, Inglese.", "Il codice è 6387."] },
+    { id: "verifica", title: "La verifica a sorpresa", step: (c) => `Trova le 2 domande nascoste nell'aula (${c.digits()}/2)`,
+      hints: ["Le domande sono sulla lavagna e su un libro.", "La lavagna è accanto alla LIM, il libro rosso è su un banco in mezzo all'aula.", "Le cifre sono: Matematica 6 · Italiano 3."] },
+    { id: "cassetto", title: "Il cassetto della cattedra", step: () => "Apri il cassetto della cattedra con le 2 cifre",
+      hints: ["Sul registro c'è scritto l'ordine delle materie.", "Ordine: prima Matematica, poi Italiano.", "Il codice è 63."] },
   ],
   intro: [
     "Buongiorno! Sono la professoressa Martini. Oggi… verifica a sorpresa!",
-    "Non preoccuparti, è facile: in quest'aula ho nascosto quattro domande, una per materia. Ogni risposta giusta ti dà una cifra.",
-    "Con le quattro cifre apri il cassetto della cattedra: dentro c'è la chiave dell'aula. L'ordine delle materie è scritto sul registro.",
+    "Non preoccuparti, è facile: in quest'aula ho nascosto due domande, una di matematica e una di italiano. Ogni risposta giusta ti dà una cifra.",
+    "Con le due cifre apri il cassetto della cattedra: dentro c'è la chiave dell'aula. L'ordine delle materie è scritto sul registro.",
   ],
   build(c) {
     const { W, D } = c;
     for (let r = 0; r < 3; r++) for (let k = 0; k < 4; k++) c.place(P.schoolDesk(), -2.7 + k * 1.5, -0.6 + r * 1.35, 0);
     const desk = c.place(P.teacherDesk(), -2.5, -2.9, PI);
     c.place(P.chair(M.black), -2.5, -3.4, 0);
-    c.place(P.lim(P.boardTex("lim", [{ t: "Benvenuti in 1ª A!", bold: true, size: 64, color: "#c2185b" }, { t: "Oggi: VERIFICA A SORPRESA", bold: true, underline: true, gap: 10 }, { t: "Matematica · Italiano · Storia · Inglese", size: 38 }, { t: "Niente panico: 4 domande, 4 cifre :)", color: "#2e7d32", size: 40, gap: 10 }], { bg: "#ffffff" })), -1.0, -D / 2 + 0.05, 0, { y: 1.55, solid: false });
+    c.place(P.lim(P.boardTex("lim", [{ t: "Benvenuti in 1ª A!", bold: true, size: 64, color: "#c2185b" }, { t: "Oggi: VERIFICA A SORPRESA", bold: true, underline: true, gap: 10 }, { t: "Matematica · Italiano", size: 38 }, { t: "Niente panico: 4 domande, 4 cifre :)", color: "#2e7d32", size: 40, gap: 10 }], { bg: "#ffffff" })), -1.0, -D / 2 + 0.05, 0, { y: 1.55, solid: false });
     c.place(P.locker(), -W / 2 + 0.3, 3.2, PI / 2);
     c.place(P.bin(M.blue), W / 2 - 0.35, D / 2 - 0.4, 0); c.place(P.bin(M.yellow), W / 2 - 0.75, D / 2 - 0.4, 0);
     // attaccapanni in legno lungo la parete est e sud, come nella foto
     B(c.scene, W / 2 - 0.03, 1.8, 1.4, 0.04, 0.09, 3.4, M.lightwood, false); for (let i = 0; i < 9; i++) B(c.scene, W / 2 - 0.07, 1.76, -0.1 + i * 0.38, 0.06, 0.05, 0.03, M.black, false);
     B(c.scene, -1.6, 2.15, D / 2 - 0.03, 4.4, 0.09, 0.04, M.lightwood, false); for (let i = 0; i < 11; i++) B(c.scene, -3.6 + i * 0.4, 2.11, D / 2 - 0.07, 0.03, 0.05, 0.06, M.black, false);
     const digits = c.state.digits = c.state.digits || {};
-    const found = (subj, d) => { if (digits[subj]) return; digits[subj] = d; c.toast(`Cifra trovata · ${subj}: ${d}`); c.refresh(); if (Object.keys(digits).length === 4) { c.done("verifica"); c.prof("Hai tutte e quattro le cifre! Ora apri il cassetto della cattedra."); } };
+    const found = (subj, d) => { if (digits[subj]) return; digits[subj] = d; c.toast(`Cifra trovata · ${subj}: ${d}`); c.refresh(); if (Object.keys(digits).length === 2) { c.done("verifica"); c.prof("Hai tutte e due le cifre! Ora apri il cassetto della cattedra."); } };
     c.digits = () => Object.keys(digits).length;
     const quizAt = (obj, point, subj, q, options, correct, d, label) => c.interact(obj, { label, point, range: 2.2, when: () => !digits[subj],
       use: async () => { if (await c.puzzle({ type: "quiz", kind: subj, title: "Domanda di " + subj, questions: [{ q, options, correct }] })) found(subj, d); } });
@@ -387,17 +387,17 @@ export const ROOMS = [
     quizAt(wb, new THREE.Vector3(1.4, 0, -D / 2 + 1.1), "Matematica", "Quanto fa 7 × 8 − 50?", ["4", "6", "16"], 1, 6, "Domanda sulla lavagna");
     const mp = P.mapTex();
     const map = c.place(P.poster(mp, 1.2, 0.85), -1.2, D / 2 - 0.05, PI, { y: 1.45, solid: false });
-    quizAt(map, new THREE.Vector3(-1.2, 0, D / 2 - 1.1), "Storia", "Othoca, la città antica che dà il nome alla scuola, fu fondata dai Fenici. In che secolo, circa?", ["VIII secolo a.C.", "XV secolo d.C.", "Nel 1990"], 0, 8, "Domanda sulla cartina");
+    void map; if (false) quizAt(map, new THREE.Vector3(-1.2, 0, D / 2 - 1.1), "Storia", "Othoca, la città antica che dà il nome alla scuola, fu fondata dai Fenici. In che secolo, circa?", ["VIII secolo a.C.", "XV secolo d.C.", "Nel 1990"], 0, 8, "Domanda sulla cartina");
     const book = new THREE.Group(); B(book, 0, 0, 0, 0.3, 0.05, 0.22, mat(0xc62828)); B(book, 0.005, 0, 0, 0.28, 0.045, 0.21, M.white);
     c.place(book, 0.3, 0.75, 0.3, { y: 0.79, solid: false });
     quizAt(book, null, "Italiano", "Quante sillabe ha la parola O-THO-CA?", ["2", "3", "4"], 1, 3, "Libro di italiano");
     const engTex = canvasTex("english", 400, 520, (g, w, h) => { g.fillStyle = "#e3f2fd"; g.fillRect(0, 0, w, h); g.fillStyle = "#0d47a1"; g.font = "800 44px Inter"; g.textAlign = "center"; g.fillText("ENGLISH", w / 2, 70); g.font = "600 30px Inter"; ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach((d, i) => g.fillText(d, w / 2, 130 + i * 52)); });
     const eng = c.place(P.poster(engTex, 0.6, 0.78), 2.2, D / 2 - 0.05, PI, { y: 1.6, solid: false });
-    quizAt(eng, new THREE.Vector3(2.2, 0, D / 2 - 1.1), "Inglese", "How many days are there in a week?", ["Five", "Seven", "Ten"], 1, 7, "Cartellone di inglese");
+    void eng; if (false) quizAt(eng, new THREE.Vector3(2.2, 0, D / 2 - 1.1), "Inglese", "How many days are there in a week?", ["Five", "Seven", "Ten"], 1, 7, "Cartellone di inglese");
     const reg = new THREE.Group(); B(reg, 0, 0, 0, 0.32, 0.04, 0.24, mat(0x1565c0)); c.place(reg, -2.1, -2.85, 0.2, { y: 0.79, solid: false });
-    c.interact(reg, { label: "Leggi il registro", point: new THREE.Vector3(-2.1, 0, -2.1), range: 1.8, use: () => c.doc("Registro di classe", `<p>Nota della prof: <i>il cassetto si apre con le cifre in quest'ordine:</i></p><p style="font-size:20px"><b>1. Matematica · 2. Italiano · 3. Storia · 4. Inglese</b></p>`) });
+    c.interact(reg, { label: "Leggi il registro", point: new THREE.Vector3(-2.1, 0, -2.1), range: 1.8, use: () => c.doc("Registro di classe", `<p>Nota della prof: <i>il cassetto si apre con le cifre in quest'ordine:</i></p><p style="font-size:20px"><b>1. Matematica · 2. Italiano</b></p>`) });
     c.interact(desk, { label: "Cassetto della cattedra", point: new THREE.Vector3(-3.0, 0, -2.0), range: 1.6, when: () => !c.isDone("cassetto"),
-      use: async () => { if (await c.puzzle({ type: "code", title: "Cassetto della cattedra", body: `<p>Un lucchetto a 4 cifre. ${c.digits() < 4 ? `<span class="muted">Hai trovato ${c.digits()} cifre su 4.</span>` : ""}</p>`, answer: "6387" })) { c.done("cassetto"); c.give({ id: "chiaveAula", name: "Chiave dell'aula", icon: "🗝️", desc: "Era nel cassetto" }); c.prof("Dieci e lode! La chiave è tua."); } } });
+      use: async () => { if (await c.puzzle({ type: "code", title: "Cassetto della cattedra", body: `<p>Un lucchetto a 2 cifre. ${c.digits() < 2 ? `<span class="muted">Hai trovato ${c.digits()} cifre su 2.</span>` : ""}</p>`, answer: "63" })) { c.done("cassetto"); c.give({ id: "chiaveAula", name: "Chiave dell'aula", icon: "🗝️", desc: "Era nel cassetto" }); c.prof("Dieci e lode! La chiave è tua."); } } });
   },
   talk(c) {
     if (!c.isDone("verifica")) return [`Hai trovato ${c.digits()} cifre su 4. Cerca su lavagna, cartina, libri e cartelloni!`];
@@ -416,8 +416,8 @@ export const ROOMS = [
   spawn: [-10.5, 5.5, PI * 0.75], exit: { side: "w", z: -4.5, color: 0x8a5a2b, glass: true }, entry: { side: "s", x: -10.5, color: 0x8a5a2b, glass: true },
   teacher: { name: "Prof. Siotto", role: "Scienze motorie", photo: "foto/prof/siotto.jpg", face: "foto/prof/face_siotto.png", at: [-7.5, 4], look: { whistle: true, shirt: 0x24408f, sleeves: "short", pants: 0x1d2433, shoes: 0xf2f2f2, hair: 0x3b3a3a, beard: true, beardColor: 0x9a9893, skinTone: 0xc99580 } },
   tasks: [
-    { id: "percorso", title: "Il percorso dei coni", step: (c) => `Tocca i coni nell'ordine della lavagnetta (${c.state.coneStep || 0}/4)`,
-      hints: ["L'ordine dei coni è scritto sulla lavagnetta vicino al prof.", "Avvicinati a ogni cono e premi E, uno alla volta.", "Ordine: Giallo → Rosso → Blu → Verde."] },
+    { id: "percorso", title: "Il percorso dei coni", step: (c) => `Tocca i coni nell'ordine della lavagnetta (${c.state.coneStep || 0}/3)`,
+      hints: ["L'ordine dei coni è scritto sulla lavagnetta vicino al prof.", "Avvicinati a ogni cono e premi E, uno alla volta.", "Ordine: Giallo → Rosso → Blu."] },
     { id: "palloni", title: "Riordina i palloni", step: (c) => `Metti ogni pallone nel suo carrello (${c.state.balls || 0}/2)`,
       hints: ["Raccogli i palloni sparsi per la palestra (E).", "Il carrello BASKET è per i palloni arancioni, VOLLEY per quelli bianchi e blu.", "C'è un pallone da basket vicino al centro e uno da pallavolo sul lato: portali ai carrelli sotto il canestro."] },
   ],
@@ -444,19 +444,19 @@ export const ROOMS = [
     for (const [x, col] of [[2, 0x1e5fc4], [4.2, 0xc62828], [6.4, 0xc62828], [8.6, 0x1e5fc4]]) { const m = c.place(P.mat3(col), x, -D / 2 + 0.25, 0); m.rotation.x = -1.35; m.position.y = 0.95; }
     c.place(P.gymBench(3), 2, D / 2 - 0.5, 0); c.place(P.gymBench(3), 6, D / 2 - 0.5, 0);
     // lavagnetta con l'ordine
-    const ord = canvasTex("ordineconi", 400, 300, (g, w, h) => { g.fillStyle = "#1f3b2c"; g.fillRect(0, 0, w, h); g.fillStyle = "#fff"; g.font = "700 30px 'Comic Sans MS', cursive"; g.fillText("PERCORSO:", 30, 50); [["#fdd835", "1. GIALLO"], ["#e53935", "2. ROSSO"], ["#1e88e5", "3. BLU"], ["#43a047", "4. VERDE"]].forEach(([col, t], i) => { g.fillStyle = col; g.fillText(t, 50, 105 + i * 50); }); });
+    const ord = canvasTex("ordineconi", 400, 300, (g, w, h) => { g.fillStyle = "#1f3b2c"; g.fillRect(0, 0, w, h); g.fillStyle = "#fff"; g.font = "700 30px 'Comic Sans MS', cursive"; g.fillText("PERCORSO:", 30, 50); [["#fdd835", "1. GIALLO"], ["#e53935", "2. ROSSO"], ["#1e88e5", "3. BLU"]].forEach(([col, t], i) => { g.fillStyle = col; g.fillText(t, 50, 105 + i * 50); }); });
     const bd = new THREE.Group(); B(bd, 0, 1.2, 0, 0.05, 2.4, 0.05, M.grey); const brd = B(bd, 0, 1.6, 0.03, 0.9, 0.68, 0.03, M.black); plane(bd, 0, 1.6, 0.05, 0.86, 0.64, new THREE.MeshBasicMaterial({ map: ord })); void brd;
     c.place(bd, -6.2, 5.6, PI * 0.85);
     c.interact(bd, { label: "Leggi la lavagnetta del percorso", range: 2.2, use: () => c.canvasDoc("Il percorso dei coni", ord.image) });
     // coni
-    const cones = [[0xfdd835, "Giallo", -2, 3], [0x1e88e5, "Blu", 5, 2.5], [0xe53935, "Rosso", 1.5, -3.5], [0x43a047, "Verde", 7.5, -2]];
-    const order = ["Giallo", "Rosso", "Blu", "Verde"];
+    const cones = [[0xfdd835, "Giallo", -2, 3], [0x1e88e5, "Blu", 5, 2.5], [0xe53935, "Rosso", 1.5, -3.5]];
+    const order = ["Giallo", "Rosso", "Blu"];
     c.state.coneStep = 0;
     cones.forEach(([col, nm, x, z]) => {
       const cn = c.place(P.cone(col), x, z, 0, { solid: false });
       c.interact(cn, { label: "Tocca il cono " + nm, range: 1.4, when: () => !c.isDone("percorso"),
         use: () => {
-          if (order[c.state.coneStep] === nm) { c.state.coneStep++; sfx.note(c.state.coneStep); cn.position.y = 0.15; setTimeout(() => (cn.position.y = 0), 300); c.refresh(); if (c.state.coneStep === 4) { c.done("percorso"); sfx.whistle(); c.prof("Ottimo riscaldamento! Ora i palloni: basket con basket, pallavolo con pallavolo."); } }
+          if (order[c.state.coneStep] === nm) { c.state.coneStep++; sfx.note(c.state.coneStep); cn.position.y = 0.15; setTimeout(() => (cn.position.y = 0), 300); c.refresh(); if (c.state.coneStep === 3) { c.done("percorso"); sfx.whistle(); c.prof("Ottimo riscaldamento! Ora i palloni: basket con basket, pallavolo con pallavolo."); } }
           else { c.state.coneStep = 0; sfx.whistle(); c.toast("Fiiii! Ordine sbagliato: ricomincia dal cono giallo."); c.refresh(); }
         } });
     });
@@ -508,14 +508,14 @@ export const ROOMS = [
   spawn: [-3.4, 7.8, PI], exit: { side: "e", z: -4.5, color: 0x8a5a2b }, entry: { side: "s", x: -3.4, y: 1.8, color: 0x8a5a2b },
   teacher: { name: "Prof. Mura", role: "Laboratorio teatrale", at: [1.0, -3.5], look: { shirt: 0x1a1a1a, pants: 0x1a1a1a, hair: 0x6d4c41, beard: true, coat: 0x3a1f2a, scarf: 0xc62828 } },
   tasks: [
-    { id: "oggetti", title: "Gli oggetti di scena", step: (c) => `Trova i 3 oggetti di scena e portali sul tavolo davanti al palco (${c.state.props || 0}/3)`,
-      hints: ["Gli oggetti di scena sono nascosti in sala: dietro le quinte e tra le poltroncine.", "Guarda ai lati del palco, dietro i sipari verdi, e in fondo alla sala.", "Corona: a sinistra del palco · Maschera: dietro le quinte (sali sul palco e passa dietro il fondale a destra) · Lanterna: sullo spiazzo in alto, dietro le gradinate."] },
+    { id: "oggetti", title: "Gli oggetti di scena", step: (c) => `Trova i 2 oggetti di scena e portali sul tavolo davanti al palco (${c.state.props || 0}/2)`,
+      hints: ["Gli oggetti di scena sono in sala: uno vicino al palco e uno in fondo.", "Guarda a sinistra del palco e sullo spiazzo in alto, dietro le gradinate.", "Corona: a sinistra del palco · Lanterna: sullo spiazzo in alto, dietro le gradinate."] },
     { id: "luci", title: "Le luci dello spettacolo", step: () => "Segui il copione e accendi le luci di scena dalla consolle",
       hints: ["Il copione è sul leggio vicino al palco.", "La consolle delle luci è sullo spiazzo in alto, dietro le gradinate: sali dalla scala centrale.", "Ordine: Blu (notte) → Giallo (alba) → Bianco (giorno) → Rosso (finale)."] },
   ],
   intro: [
     "Benvenuto in aula magna! Sono il professor Mura e stasera c'è lo spettacolo della scuola.",
-    "Disastro: mancano tre oggetti di scena! Corona, maschera e lanterna sono finiti chissà dove. Portali sul tavolo davanti al palco.",
+    "Disastro: mancano due oggetti di scena! La corona e la lanterna sono finite chissà dove. Portali sul tavolo davanti al palco.",
     "Poi le luci: il copione sul leggio dice in che ordine accenderle dalla consolle in fondo alla sala.",
   ],
   build(c) {
@@ -579,13 +579,13 @@ export const ROOMS = [
         if (!mine.length) { c.toast("Sul tavolo mancano corona, maschera e lanterna. Cercali in sala!"); return; }
         for (const it of mine) { c.take(it.id); c.state.props++; const g = it.make(); g.position.set(-0.5 + placed.length * 0.5, 0.78, 0); tbl.add(g); placed.push(g); }
         sfx.pick(); c.refresh();
-        if (c.state.props >= 3) { c.done("oggetti"); c.prof("Ci sono tutti! Adesso le luci: leggi il copione e vai alla consolle."); }
-        else c.toast(`Oggetti sul tavolo: ${c.state.props}/3`);
+        if (c.state.props >= 2) { c.done("oggetti"); c.prof("Ci sono tutti! Adesso le luci: leggi il copione e vai alla consolle."); }
+        else c.toast(`Oggetti sul tavolo: ${c.state.props}/2`);
       } });
     const crown = () => { const g = new THREE.Group(); const ring = C(g, 0, 0.06, 0, 0.1, 0.12, M.yellow, 0.1); ring.material = mat(0xf2c21b, { metal: 0.7, rough: 0.3 }); for (let i = 0; i < 5; i++) { const sp = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.08, 6), ring.material); sp.position.set(Math.cos(i * 1.26) * 0.09, 0.15, Math.sin(i * 1.26) * 0.09); g.add(sp); } return g; };
     const mask = () => { const g = new THREE.Group(); const f = S(g, 0, 0.1, 0, 0.11, mat(0xffffff, { rough: .3 })); f.scale.set(1, 1.2, 0.4); S(g, -0.04, 0.12, 0.04, 0.02, M.black); S(g, 0.04, 0.12, 0.04, 0.02, M.black); return g; };
     const lantern = () => { const g = new THREE.Group(); B(g, 0, 0.12, 0, 0.14, 0.2, 0.14, mat(0xffe082, { emissive: 0xffc107, ei: 0.6 })); B(g, 0, 0.24, 0, 0.16, 0.03, 0.16, M.black); B(g, 0, 0.01, 0, 0.16, 0.03, 0.16, M.black); return g; };
-    const hidden = [["corona", "Corona", "👑", crown, -5.9, -D / 2 + 4.6], ["maschera", "Maschera", "🎭", mask, -3.0, -8.25], ["lanterna", "Lanterna", "🏮", lantern, 7.2, 7.6]];
+    const hidden = [["corona", "Corona", "👑", crown, -5.9, -D / 2 + 4.6], ["lanterna", "Lanterna", "🏮", lantern, 7.2, 7.6]];
     hidden.forEach(([id, nm, ic, mk, x, z]) => {
       const g = mk(); c.place(g, x, z, 0, { solid: false, y: (id === "maschera" ? 0.6 : id === "lanterna" ? 1.8 : 0) });
       c.interact(g, { label: "Prendi: " + nm, range: 1.5, use: (it) => { c.give({ id, prop: true, name: nm, icon: ic, desc: "Oggetto di scena", make: mk }); c.remove(it); c.toast(nm + " trovata! Portala sul tavolo davanti al palco."); } });
@@ -603,7 +603,7 @@ export const ROOMS = [
       } });
   },
   talk(c) {
-    if (!c.isDone("oggetti")) return [`Ne hai trovati ${c.state.props || 0} su 3. Guarda dietro le quinte, ai lati del palco, e tra le file in fondo!`];
+    if (!c.isDone("oggetti")) return [`Ne hai trovati ${c.state.props || 0} su 2. Guarda a sinistra del palco e in fondo alla sala!`];
     if (!c.isDone("luci")) return ["Il copione è sul leggio qui accanto. La consolle è in fondo alla sala."];
     return ["Spettacolo riuscito! Puoi uscire dalla porta laterale."];
   },

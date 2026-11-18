@@ -458,7 +458,7 @@ const TASK_TARGETS = {
   pneumatica: { schema: ["schema pneumatico", "Collega i tubi"], ciclo: ["START"] },
   zoomate: { uccelli: ["Guarda la foto", "tavolo touch", "Abbina"], catena: ["catena alimentare"] },
   informatica: { password: ["post-it", "PC del prof"], stampa: ["Stampante 3D"] },
-  aula: { verifica: ["Domanda", "Libro", "Cartellone di inglese"], cassetto: ["registro", "Cassetto"] },
+  aula: { verifica: ["Domanda sulla lavagna", "Libro"], cassetto: ["registro", "Cassetto"] },
   palestra: { percorso: ["lavagnetta", "Tocca il cono"], palloni: ["Raccogli", "Carrello"] },
   teatro: { oggetti: ["Prendi:", "Tavolo degli oggetti"], luci: ["copione", "Consolle"] },
 };
