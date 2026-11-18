@@ -320,6 +320,9 @@ function goldFlamingo() {
   for (const x of [-0.03, 0.03]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.26, 6), gold); leg.position.set(x, 0.13, 0); g.add(leg); }
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.27, 32), new THREE.MeshBasicMaterial({ color: 0xffd54f, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; g.add(ring);
   g.userData.ring = ring;
+  // colonna di luce dorata visibile da tutta la stanza
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 1.6, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd54f, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+  beam.position.y = 0.8; g.add(beam); g.userData.beam = beam;
   return g;
 }
 function reachCells(spawn) {
@@ -338,19 +341,20 @@ function addFlamingos(def) {
   const left = FLAMINGOS - flamingosFound(def.id); if (left <= 0) return;
   const cells = reachCells(def.spawn); if (!cells.length) return;
   // preferisci i posti lontani dall'ingresso e vicini a muri o arredi (più nascosti)
-  const score = ([x, z]) => { let near = 9; for (const c of world.colliders) near = Math.min(near, distToRect(x, z, c)); const b = world.bounds; near = Math.min(near, x - b.x0, b.x1 - x, z - b.z0, b.z1 - z); return Math.hypot(x - def.spawn[0], z - def.spawn[1]) * 0.25 - near * 1.5 + Math.random() * 1.5; };
-  const cand = cells.filter(([x, z]) => Math.hypot(x - def.spawn[0], z - def.spawn[1]) > 2.5 && Math.hypot(x - def.teacher.at[0], z - def.teacher.at[1]) > 1.2).sort((a, b) => score(b) - score(a));
+  // posti ben visibili: lontani da muri e arredi, a media distanza dall'ingresso
+  const score = ([x, z]) => { let near = 9; for (const c of world.colliders) near = Math.min(near, distToRect(x, z, c)); const b = world.bounds; near = Math.min(near, x - b.x0, b.x1 - x, z - b.z0, b.z1 - z); return Math.min(near, 1.5) * 2 - Math.abs(Math.hypot(x - def.spawn[0], z - def.spawn[1]) - 5) * 0.25 + Math.random() * 1.2; };
+  const cand = cells.filter(([x, z]) => Math.hypot(x - def.spawn[0], z - def.spawn[1]) > 2.2 && Math.hypot(x - def.teacher.at[0], z - def.teacher.at[1]) > 1.2).sort((a, b) => score(b) - score(a));
   for (const [x, z] of cand) {
     if (goldies.length >= left) break;
     if (goldies.some((g) => Math.hypot(g.x - x, g.z - z) < Math.max(3, Math.min(def.size[0], def.size[1]) * 0.35))) continue;
-    const m = goldFlamingo(); m.scale.setScalar(1.4); const y = heightAt(x, z); m.position.set(x, y, z); world.scene.add(m);
+    const m = goldFlamingo(); m.scale.setScalar(1.8); const y = heightAt(x, z); m.position.set(x, y, z); world.scene.add(m);
     const gd = { m, x, z, y, t: Math.random() * 6, taken: false }; goldies.push(gd);
   }
   world.animated.push((dt) => {
     for (const g of goldies) {
       if (g.taken) { if (g.m.visible) { g.t += dt; g.m.position.y += dt * 3; g.m.scale.multiplyScalar(1 - dt * 3); g.m.rotation.y += dt * 20; if (g.m.scale.x < 0.05) g.m.visible = false; } continue; }
-      g.t += dt; g.m.rotation.y += dt * 1.8; g.m.position.y = g.y + 0.15 + Math.sin(g.t * 2.4) * 0.08; g.m.userData.ring.position.y = -0.13 - Math.sin(g.t * 2.4) * 0.08; g.m.userData.ring.material.opacity = 0.35 + Math.sin(g.t * 4) * 0.2;
-      if (state === "room" && Math.hypot(player.pos.x - g.x, player.pos.y - g.z) < 0.75) collectFlamingo(g);
+      g.t += dt; g.m.rotation.y += dt * 1.8; g.m.position.y = g.y + 0.15 + Math.sin(g.t * 2.4) * 0.08; g.m.userData.ring.position.y = -0.13 - Math.sin(g.t * 2.4) * 0.08; g.m.userData.ring.material.opacity = 0.35 + Math.sin(g.t * 4) * 0.2; g.m.userData.beam.material.opacity = 0.16 + Math.sin(g.t * 3) * 0.07; g.m.userData.beam.rotation.y = -g.m.rotation.y;
+      if (state === "room" && Math.hypot(player.pos.x - g.x, player.pos.y - g.z) < 1.1) collectFlamingo(g);
     }
   });
 }
