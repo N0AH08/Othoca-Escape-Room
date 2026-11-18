@@ -223,3 +223,28 @@ kbd { font: 700 12px Inter, sans-serif; padding: 2px 7px; border-radius: 6px; ba
 @keyframes starpop { to { transform: scale(1); } }
 .win-rank { text-align: center; font: 800 22px "Baloo 2"; color: var(--blue); margin-bottom: 4px; }
 .win-xp { text-align: center; font: 800 18px Inter; color: #ffd166; }
+
+/* ---------- giocatore, classifica e trofei ---------- */
+.menu-who { margin: 10px 0 0; font-size: 14px; opacity: .85; }
+.menu-who a { color: var(--pink, #f0559a); }
+.name-in { width: 100%; box-sizing: border-box; font: 600 22px "Baloo 2", Inter, sans-serif; padding: 12px 16px; border-radius: 14px; border: 2px solid rgba(240,85,154,.5); background: rgba(255,255,255,.06); color: inherit; outline: none; margin: 8px 0 4px; text-align: center; }
+.name-in:focus { border-color: #f0559a; box-shadow: 0 0 0 4px rgba(240,85,154,.2); }
+.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-4px); } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+.chip { border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.05); color: inherit; border-radius: 999px; padding: 6px 12px; font: 600 13px Inter, sans-serif; cursor: pointer; }
+.chip.on { background: linear-gradient(135deg, #f0559a, #e0245e); border-color: transparent; color: #fff; }
+.board { display: grid; gap: 6px; }
+.brow { display: grid; grid-template-columns: 44px 1fr auto 64px; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.05); }
+.brow:nth-child(1) { background: linear-gradient(90deg, rgba(255,202,40,.22), rgba(255,255,255,.04)); }
+.brow.me { outline: 2px solid #f0559a; }
+.brow .pos { font: 700 18px "Baloo 2", sans-serif; text-align: center; }
+.brow .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brow .st { color: #ffca28; letter-spacing: 1px; } .brow .st i { color: rgba(255,255,255,.18); font-style: normal; }
+.brow .tm { font: 700 16px "Baloo 2", sans-serif; text-align: right; color: #f0559a; }
+.trophies { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin-top: 8px; }
+.tro { text-align: center; padding: 10px 6px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px dashed rgba(255,255,255,.15); filter: grayscale(1); opacity: .5; }
+.tro.got { filter: none; opacity: 1; border: 1px solid rgba(255,202,40,.6); background: radial-gradient(circle at 50% 0%, rgba(255,202,40,.22), rgba(255,255,255,.04)); }
+.tro b { display: block; font-size: 28px; } .tro span { display: block; font-weight: 700; font-size: 13px; margin-top: 2px; } .tro small { display: block; font-size: 11px; opacity: .7; margin-top: 2px; line-height: 1.25; }
+.win-pos { text-align: center; font: 700 17px "Baloo 2", sans-serif; color: #ffca28; margin-top: 2px; }
+#banner { z-index: 30 !important; }

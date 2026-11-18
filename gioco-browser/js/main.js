@@ -33,16 +33,65 @@ const starsFor = (t, hints) => (hints === 0 && t < 240 ? 3 : hints <= 2 && t < 4
 const totalStars = () => Object.values(progress.rooms).reduce((a, r) => a + (r.stars || 1), 0);
 const RANKS = [[0, "Matricola curiosa"], [6, "Apprendista di laboratorio"], [12, "Tecnico in erba"], [18, "Esperto Othoca"], [24, "Leggenda dell'Othoca"]];
 const rankOf = (n) => RANKS.filter(([k]) => n >= k).pop()[1];
-function refreshMenuStars() { const el = $("menuStars"); if (el) el.innerHTML = `<b>${totalStars()}</b> / ${ROOMS.length * 3} ⭐`; }
+function refreshMenuStars() { const el = $("menuStars"); if (el) el.innerHTML = `<b>${totalStars()}</b> / ${ROOMS.length * 3} ⭐`; const w = $("menuWho"); if (w) { w.hidden = !progress.name; w.innerHTML = `Ciao <b>${esc(progress.name || "")}</b>! · ${esc(rankOf(totalStars()))} · <a href="#" data-act="player">non sei tu?</a>`; } }
 (function sparks() { const m = $("menu"); for (let i = 0; i < 22; i++) { const sp = document.createElement("i"); sp.className = "spark"; sp.style.left = Math.random() * 100 + "%"; sp.style.animationDuration = 8 + Math.random() * 10 + "s"; sp.style.animationDelay = -Math.random() * 15 + "s"; const sz = 3 + Math.random() * 5; sp.style.width = sp.style.height = sz + "px"; m.appendChild(sp); } })();
 function showBanner(title, sub = "") { const b = $("banner"); b.innerHTML = `<div class="bn">${esc(title)}${sub ? `<small>${esc(sub)}</small>` : ""}</div>`; b.hidden = false; clearTimeout(showBanner.t); showBanner.t = setTimeout(() => (b.hidden = true), 2300); }
 function showRoomTitle(def) { const r = $("roomTitle"); r.innerHTML = `<div class="rt"><small>${esc(def.indirizzo)}</small><h2>${esc(def.name)}</h2><div>${def.tasks.length} sfide · ${def.teacher.name}</div></div>`; r.hidden = false; setTimeout(() => (r.hidden = true), 2900); }
+
+// ---------- giocatore, classifica dell'open day e trofei ----------
+const BOARD_KEY = "othoca-escape-board";
+const board = load(BOARD_KEY, { runs: [] });
+const TROPHIES = [
+  { id: "first", icon: "🚪", t: "Primo passo", d: "Esci dalla prima stanza", ok: (r) => r.rooms >= 1 },
+  { id: "nohint", icon: "🧠", t: "Cervellone", d: "Esci da una stanza senza aiuti", ok: (r) => r.hints === 0 },
+  { id: "fast", icon: "⚡", t: "Fulmine", d: "Esci in meno di 2 minuti", ok: (r) => r.time < 120 },
+  { id: "three", icon: "⭐", t: "Perfetto", d: "Prendi 3 stelle in una stanza", ok: (r) => r.stars === 3 },
+  { id: "half", icon: "🗺️", t: "Mezza scuola", d: "Completa 4 stanze", ok: (r) => r.rooms >= 4 },
+  { id: "all", icon: "🏫", t: "Tutta l'Othoca", d: "Completa tutte le 8 stanze", ok: (r) => r.rooms >= 8 },
+  { id: "stars", icon: "👑", t: "Leggenda", d: "Raccogli tutte le 24 stelle", ok: (r) => r.total >= 24 },
+];
+if (!progress.trophies) progress.trophies = [];
+function checkTrophies(run) {
+  const got = TROPHIES.filter((x) => !progress.trophies.includes(x.id) && x.ok(run));
+  got.forEach((x, i) => { progress.trophies.push(x.id); setTimeout(() => { sfx.ok(); showBanner(`${x.icon} TROFEO SBLOCCATO!`, x.t); }, 2600 + i * 2500); });
+  save(SAVE_KEY, progress); return got;
+}
+function askName(then) {
+  const p = modal(`<div class="eyebrow">Nuovo giocatore</div><h2>Come ti chiami?</h2><p class="muted">Il tuo nome comparirà nella classifica dell'open day.</p>
+    <input class="name-in" data-n maxlength="14" placeholder="Il tuo nome" autocomplete="off" spellcheck="false" value="${esc(progress.name || "")}">
+    <div class="row"><button class="btn primary" data-ok>Iniziamo! →</button></div>`, { closable: false });
+  const inp = p.querySelector("[data-n]"); setTimeout(() => inp.focus(), 50);
+  const go = () => { const v = inp.value.trim().replace(/\s+/g, " ").slice(0, 14); if (!v) { inp.classList.add("shake"); setTimeout(() => inp.classList.remove("shake"), 400); return; } progress.name = v; save(SAVE_KEY, progress); closeModal(); refreshMenuStars(); then && then(); };
+  p.querySelector("[data-ok]").onclick = go; inp.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") go(); });
+}
+function newPlayer() {
+  const p = modal(`<div class="eyebrow">Cambia giocatore</div><h2>Tocca a un altro?</h2><p>I progressi di <b>${esc(progress.name || "questo giocatore")}</b> ripartono da zero. La classifica resta salvata.</p>
+    <div class="row"><button class="btn ghost" data-no>Annulla</button><button class="btn primary" data-yes>Nuovo giocatore</button></div>`);
+  p.querySelector("[data-no]").onclick = () => closeModal();
+  p.querySelector("[data-yes]").onclick = () => { progress.rooms = {}; progress.trophies = []; progress.name = ""; save(SAVE_KEY, progress); closeModal(); refreshMenuStars(); setTimeout(() => askName(), 50); };
+}
+const rankRuns = (id) => board.runs.filter((r) => r.room === id).sort((a, b) => b.stars - a.stars || a.time - b.time);
+function showBoard(sel) {
+  sel = sel || ROOMS[0].id;
+  const rows = rankRuns(sel).slice(0, 10);
+  const medal = (i) => ["🥇", "🥈", "🥉"][i] || `${i + 1}.`;
+  const p = modal(`<div class="eyebrow">Open day · Othoca</div><h2>🏆 Classifica</h2>
+    <div class="chips">${ROOMS.map((r) => `<button class="chip ${r.id === sel ? "on" : ""}" data-r="${r.id}">${esc(r.name.replace(/^Laboratorio (di )?/, ""))}</button>`).join("")}</div>
+    <div class="board">${rows.length ? rows.map((r, i) => `<div class="brow ${r.name === progress.name ? "me" : ""}"><span class="pos">${medal(i)}</span><span class="nm">${esc(r.name)}</span><span class="st">${"★".repeat(r.stars)}<i>${"★".repeat(3 - r.stars)}</i></span><span class="tm">${fmtTime(r.time)}</span></div>`).join("") : `<p class="muted" style="text-align:center;padding:18px 0">Ancora nessuno: sarai il primo?</p>`}</div>
+    <div class="eyebrow" style="margin-top:14px">I tuoi trofei · ${progress.trophies.length} / ${TROPHIES.length}</div>
+    <div class="trophies">${TROPHIES.map((x) => `<div class="tro ${progress.trophies.includes(x.id) ? "got" : ""}" title="${esc(x.d)}"><b>${x.icon}</b><span>${esc(x.t)}</span><small>${esc(x.d)}</small></div>`).join("")}</div>
+    <div class="row"><button class="btn primary" data-x>Chiudi</button></div>`, { wide: true });
+  p.querySelectorAll("[data-r]").forEach((b) => (b.onclick = () => { sfx.click(); closeModal(); showBoard(b.dataset.r); }));
+  p.querySelector("[data-x]").onclick = () => closeModal();
+}
 
 // ---------- menu ----------
 $("menu").addEventListener("click", (e) => {
   const a = e.target.closest("[data-act]")?.dataset.act; if (!a) return;
   unlockAudio(); sfx.click();
-  if (a === "play") openHub();
+  if (a === "play") { if (progress.name) openHub(); else askName(openHub); }
+  if (a === "board") showBoard();
+  if (a === "player") newPlayer();
   if (a === "settings") showSettings(settings, applySettings);
   if (a === "credits") showCredits();
 });
@@ -210,13 +259,18 @@ function win() {
   const prev = progress.rooms[room.id]; const t = timer; const record = !prev || t < prev.best;
   const stars = starsFor(t, ctx.state.hintsUsed); const xp = 100 * stars + Math.max(0, 300 - Math.round(t));
   progress.rooms[room.id] = { best: record ? t : prev.best, hints: ctx.state.hintsUsed, stars: Math.max(stars, prev?.stars || 0) }; save(SAVE_KEY, progress);
+  const me = { name: progress.name || "Anonimo", room: room.id, time: Math.round(t), stars, hints: ctx.state.hintsUsed, at: Date.now() };
+  board.runs.push(me); board.runs = board.runs.slice(-600); save(BOARD_KEY, board);
+  const pos = rankRuns(room.id).indexOf(me) + 1;
+  checkTrophies({ rooms: Object.keys(progress.rooms).length, hints: ctx.state.hintsUsed, time: t, stars, total: totalStars() });
   const p = modal(`<div class="eyebrow">${esc(room.name)}</div><h2 style="text-align:center">🎉 Sei uscito!</h2>
     <div class="win-stars">${[1, 2, 3].map((k) => `<i class="${k <= stars ? "on" : ""}" style="animation-delay:${0.25 + k * 0.25}s">★</i>`).join("")}</div>
-    <div class="win-xp">+${xp} XP</div><div class="win-rank">${esc(rankOf(totalStars()))}</div>
+    <div class="win-xp">+${xp} XP</div>${pos ? `<div class="win-pos">${pos === 1 ? "🥇 Primo posto in classifica!" : pos <= 3 ? `${["", "", "🥈", "🥉"][pos]} ${pos}° in classifica!` : `${pos}° in classifica`}</div>` : ""}<div class="win-rank">${esc(rankOf(totalStars()))}</div>
     <div class="win-stats"><div><b>${fmtTime(t)}</b>tempo</div><div><b>${ctx.state.hintsUsed}</b>aiuti usati</div><div><b>${record ? "🏆" : fmtTime(prev.best)}</b>${record ? "nuovo record!" : "record"}</div></div>
     <div class="curio"><div class="eyebrow">Lo sapevi? · ${esc(room.indirizzo)}</div><p style="margin:6px 0 0">${esc(room.curiosity)}</p></div>
-    <div class="row"><button class="btn" data-again>↺ Rigioca</button><button class="btn primary" data-map>Scegli un'altra stanza →</button></div>`, { closable: false });
+    <div class="row"><button class="btn ghost" data-board>🏆 Classifica</button><button class="btn" data-again>↺ Rigioca</button><button class="btn primary" data-map>Scegli un'altra stanza →</button></div>`, { closable: false });
   p.querySelector("[data-map]").onclick = () => { closeModal(); leaveRoom(); openMap(); };
+  p.querySelector("[data-board]").onclick = () => { const id = room.id; closeModal(); leaveRoom(); openMap(); setTimeout(() => showBoard(id), 30); };
   p.querySelector("[data-again]").onclick = () => { closeModal(); const id = room.id; leaveRoom(); startRoom(id); };
 }
 function leaveRoom() { stopAmbience(); camFocus.target = null; camFocus.t = 0; room = null; world.scene = null; showPrompt(null); $("clickToPlay").hidden = true; document.exitPointerLock?.(); }
@@ -400,3 +454,4 @@ function loop() {
   const m = location.hash.match(/stanza=(\w+)/); if (m && ROOMS.find((r) => r.id === m[1])) setTimeout(() => startRoom(m[1]), 300);
   window.__game = { startRoom, get ctx() { return ctx; }, get state() { return state; }, get introDone() { return introDone; }, player, input, world, ROOMS, tryExit, closeModal };
 })();
+$("mapBoard").onclick = () => { sfx.click(); showBoard(); };

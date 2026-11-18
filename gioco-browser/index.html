@@ -25,8 +25,10 @@
       <h1>Othoca <span>Escape</span></h1>
       <p class="sub">Esplora i laboratori dell'I.T.I. "Othoca" di Oristano e risolvi le sfide dei prof per uscire da ogni stanza.</p>
       <div class="menu-stats"><span><b>8</b> laboratori</span><span><b>16</b> sfide</span><span id="menuStars"><b>0</b> / 24 ⭐</span></div>
+      <p class="menu-who" id="menuWho" hidden></p>
       <div class="menu-btns">
         <button class="btn primary big" data-act="play">▶ Gioca</button>
+        <button class="btn" data-act="board">🏆 Classifica e trofei</button>
         <button class="btn" data-act="settings">⚙ Impostazioni</button>
         <button class="btn" data-act="credits">ℹ Crediti</button>
       </div>
@@ -57,6 +59,7 @@
         <div><div class="eyebrow">Scegli la tua escape room</div><h2>Dove vuoi andare?</h2></div>
         <div class="spacer"></div>
         <div class="progress" id="mapProgress"></div>
+        <button class="btn ghost" id="mapBoard">🏆 Classifica</button>
         <button class="btn ghost" id="mapBack">← Ingresso</button>
       </div>
       <div class="cards" id="roomCards"></div>
