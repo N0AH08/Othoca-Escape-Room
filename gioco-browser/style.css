@@ -343,3 +343,6 @@ kbd { display: inline-block; min-width: 1.6em; padding: 2px 6px; border-radius: 
 .hud-flam.full { background: linear-gradient(135deg, #ffca28, #ff9800); color: #2a1a00; box-shadow: 0 0 20px rgba(255,202,40,.5); }
 .card .flam { color: #ffd54f; font-weight: 700; } .card .flam.full { text-shadow: 0 0 10px rgba(255,202,40,.8); }
 #touchDance { position: absolute; right: 124px; bottom: 60px; width: 56px; height: 56px; border-radius: 50%; border: 0; background: #ffca28; font-size: 26px; }
+#autoHint { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 16; display: flex; gap: 12px; align-items: center; max-width: min(560px, calc(100vw - 32px)); padding: 12px 18px; border-radius: 16px; background: rgba(30,22,10,.94); border: 2px solid #ffca28; box-shadow: 0 10px 30px rgba(0,0,0,.4), 0 0 24px rgba(255,202,40,.3); font-size: 16px; animation: hintIn .4s cubic-bezier(.2,1.4,.4,1); }
+#autoHint span { font-size: 30px; animation: bob 1.4s infinite; } #autoHint small { display: block; color: #ffca28; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+@keyframes hintIn { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }

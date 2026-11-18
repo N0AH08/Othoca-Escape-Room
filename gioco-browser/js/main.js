@@ -30,7 +30,7 @@ const screens = ["loading", "menu", "hub", "map"];
 function show(name) { for (const s of screens) $(s).hidden = s !== name; $("hud").hidden = name !== "room"; }
 
 // ---------- stelle, gradi e scintille ----------
-const starsFor = (t, hints) => (hints === 0 && t < 240 ? 3 : hints <= 2 && t < 480 ? 2 : 1);
+const starsFor = (t, hints) => (hints <= 1 && t < 300 ? 3 : hints <= 3 && t < 600 ? 2 : 1);
 const totalStars = () => ROOMS.reduce((a, r) => a + (progress.rooms[r.id] ? progress.rooms[r.id].stars || 1 : 0), 0);
 const roomsDone = () => ROOMS.filter((r) => progress.rooms[r.id]).length;
 const lettersStr = () => ROOMS.map((r, i) => (progress.rooms[r.id] ? SECRET_WORD[i] : "_")).join("");
@@ -448,7 +448,7 @@ function win() {
   p.querySelector("[data-board]").onclick = () => { const id = room.id; closeModal(); leaveRoom(); openMap(); setTimeout(() => showBoard(id), 30); };
   p.querySelector("[data-again]").onclick = () => { closeModal(); const id = room.id; leaveRoom(); startRoom(id); };
 }
-function leaveRoom() { stopAmbience(); camFocus.target = null; camFocus.t = 0; room = null; world.scene = null; showPrompt(null); $("clickToPlay").hidden = true; document.exitPointerLock?.(); }
+function leaveRoom() { $("autoHint").hidden = true; stopAmbience(); camFocus.target = null; camFocus.t = 0; room = null; world.scene = null; showPrompt(null); $("clickToPlay").hidden = true; document.exitPointerLock?.(); }
 
 // ---------- segnalini delle sfide: rombo rosa sopra le cose da usare per l'obiettivo corrente ----------
 const TASK_TARGETS = {
@@ -515,10 +515,25 @@ $("btnPhoto").onclick = () => openPhoto();
 $("btnHint").onclick = () => openHint();
 $("btnInv").onclick = () => { if (ctx && !busy()) showInventory(ctx.state.inv); };
 $("btnPause").onclick = () => pause();
+// aiuti automatici: se resti fermo sulla stessa sfida, il prof ti dà un suggerimento gratis
+let stuck = { key: "", t: 0 };
+function autoHint(dt) {
+  const t = currentTask(); if (!t || !introDone) return;
+  const key = t.id + "|" + $("objText").textContent;
+  if (key !== stuck.key) { stuck = { key, t: 0 }; return; }
+  stuck.t += dt;
+  ctx.state.auto = ctx.state.auto || {};
+  const lvl = Math.max(ctx.state.auto[t.id] || 0, ctx.state.hints[t.id] || 0);
+  if (stuck.t > 40 && lvl < t.hints.length) {
+    ctx.state.auto[t.id] = lvl + 1; stuck.t = 0;
+    const b = $("autoHint"); b.innerHTML = `<span>💡</span><div><small>${esc(room.teacher.name)} ti suggerisce</small>${esc(t.hints[lvl])}</div>`; b.hidden = false; sfx.hint();
+    clearTimeout(autoHint.tm); autoHint.tm = setTimeout(() => (b.hidden = true), 12000);
+  }
+}
 function openHint() {
   if (!ctx || busy() || !introDone) return;
   const t = currentTask();
-  const render = () => showHint(t, ctx.state.hints[t?.id] || 0, () => { ctx.state.hints[t.id] = (ctx.state.hints[t.id] || 0) + 1; ctx.state.hintsUsed++; refreshHud(); closeModal(); render(); });
+  const render = () => showHint(t, Math.max(ctx.state.hints[t?.id] || 0, (ctx.state.auto || {})[t?.id] || 0), () => { ctx.state.hints[t.id] = Math.max(ctx.state.hints[t.id] || 0, (ctx.state.auto || {})[t.id] || 0) + 1; ctx.state.hintsUsed++; refreshHud(); closeModal(); render(); });
   render();
 }
 let current = null;
@@ -617,7 +632,7 @@ function loop() {
     if (target) guide.position.set(target.x, (target === teacher.root.position ? 2.75 : 2.85) + Math.sin(t * 3) * 0.08, target.z);
   }
   updateMarkers(t);
-  if (timing && !busy()) { timer += dt; $("hudTimer").textContent = fmtTime(timer); }
+  if (timing && !busy()) { timer += dt; $("hudTimer").textContent = fmtTime(timer); autoHint(dt); }
   // se il computer fatica (meno di 28 fps per qualche secondo) abbassa da solo la qualità grafica
   if (state === "room" && !document.hidden) {
     perf.n++; perf.t += dt;

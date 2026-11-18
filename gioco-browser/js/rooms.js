@@ -418,8 +418,8 @@ export const ROOMS = [
   tasks: [
     { id: "percorso", title: "Il percorso dei coni", step: (c) => `Tocca i coni nell'ordine della lavagnetta (${c.state.coneStep || 0}/4)`,
       hints: ["L'ordine dei coni è scritto sulla lavagnetta vicino al prof.", "Avvicinati a ogni cono e premi E, uno alla volta.", "Ordine: Giallo → Rosso → Blu → Verde."] },
-    { id: "palloni", title: "Riordina i palloni", step: (c) => `Metti ogni pallone nel suo carrello (${c.state.balls || 0}/4)`,
-      hints: ["Raccogli i palloni sparsi per la palestra (E).", "Il carrello BASKET è per i palloni arancioni, VOLLEY per quelli bianchi e blu.", "Ci sono 2 palloni da basket e 2 da pallavolo: portali ai carrelli sotto il canestro."] },
+    { id: "palloni", title: "Riordina i palloni", step: (c) => `Metti ogni pallone nel suo carrello (${c.state.balls || 0}/2)`,
+      hints: ["Raccogli i palloni sparsi per la palestra (E).", "Il carrello BASKET è per i palloni arancioni, VOLLEY per quelli bianchi e blu.", "C'è un pallone da basket vicino al centro e uno da pallavolo sul lato: portali ai carrelli sotto il canestro."] },
   ],
   intro: [
     "Fischio d'inizio! Sono il professor Siotto. Prima di tutto, riscaldamento!",
@@ -470,7 +470,7 @@ export const ROOMS = [
       const ok = Math.random() < 0.7 || shots >= 1; shots++; let t = 0; sfx.click();
       c.anim((dt) => { if (t > 1.6 || !b.parent) return; t += dt; const k = Math.min(1, t / 1.0); if (k < 1) { b.position.lerpVectors(start, ok ? end : end.clone().add(new THREE.Vector3(0.1, 0, 0.3)), k); b.position.y += Math.sin(k * Math.PI) * 1.6; b.rotation.x += dt * 8; } else { b.position.y -= dt * 4; b.position.x += dt * (ok ? 0.2 : 1.2); if (t > 1.0 && t - dt <= 1.0) { if (ok) { sfx.ok(); c.toast("🏀 Canestro!"); } else { sfx.bad(); c.toast("Ferro! Riprova"); } } if (b.position.y < 0.12) { c.scene.remove(b); } } });
     } });
-    const balls = [["basket", -4, -1], ["basket", 9, 4.5], ["volley", 3, 5.5], ["volley", -9, -5]];
+    const balls = [["basket", -4, -1], ["volley", 3, 5.5]];
     balls.forEach(([k, x, z], i) => {
       const bl = c.place(P.ball(k), x, z, 0, { solid: false });
       c.interact(bl, { label: k === "basket" ? "Raccogli il pallone da basket" : "Raccogli il pallone da pallavolo", range: 1.4,
@@ -487,7 +487,7 @@ export const ROOMS = [
           if (put) { sfx.pick(); c.toast(`${put} pallon${put > 1 ? "i" : "e"} nel carrello ${lbl}!`); }
           if (wrong) c.toast(put ? `Messi! Ma gli altri non vanno nel carrello ${lbl}.` : `Questo pallone non va nel carrello ${lbl}!`);
           c.refresh();
-          if (c.state.balls >= 4) { c.done("palloni"); c.prof("Palestra in ordine! Sei pronto per qualsiasi sport."); }
+          if (c.state.balls >= 2) { c.done("palloni"); c.prof("Palestra in ordine! Sei pronto per qualsiasi sport."); }
         } });
     });
   },

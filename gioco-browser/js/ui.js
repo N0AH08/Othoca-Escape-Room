@@ -32,10 +32,10 @@ function nextLine() {
   clearInterval(dlg.timer);
   dlg.timer = setInterval(() => {
     if (!dlg) return;
-    dlg.shown += 2; $("dlgText").textContent = dlg.full.slice(0, dlg.shown);
+    dlg.shown += 3; $("dlgText").textContent = dlg.full.slice(0, dlg.shown);
     if (dlg.shown % 6 === 0) sfx.blip();
     if (dlg.shown >= dlg.full.length) finishTyping();
-  }, 22);
+  }, 16);
 }
 function finishTyping() {
   if (!dlg) return; clearInterval(dlg.timer); dlg.typing = false; $("dlgText").textContent = dlg.full;
