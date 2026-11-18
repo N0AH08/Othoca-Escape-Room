@@ -350,3 +350,6 @@ kbd { display: inline-block; min-width: 1.6em; padding: 2px 6px; border-radius: 
 .tube-show i { width: 26px; height: 90px; border-radius: 4px 4px 14px 14px; border: 3px solid rgba(255,255,255,.6); background: linear-gradient(180deg, transparent 30%, var(--c) 30%); box-shadow: 0 0 24px var(--c); animation: tubeFill 1s ease both; }
 @keyframes tubeFill { from { background: linear-gradient(180deg, transparent 100%, var(--c) 100%); } }
 .tube-show span { font-size: 17px; } .tube-show b { color: var(--c); filter: brightness(1.4); }
+.cnc-draw { display: flex; height: 54px; margin: 10px 0 0; border-radius: 10px; overflow: hidden; border: 2px solid #4fc3f7; background: repeating-linear-gradient(90deg, rgba(79,195,247,.08) 0 10px, transparent 10px 20px); }
+.cnc-draw span { display: grid; place-items: center; font: 800 20px "Baloo 2"; color: #4fc3f7; border-right: 2px dashed rgba(79,195,247,.6); }
+.cnc-draw span:nth-child(2) { background: rgba(79,195,247,.14); } .cnc-draw span:last-child { border-right: 0; }

@@ -5,6 +5,25 @@ import * as P from "./props.js";
 import { sfx } from "./audio.js";
 
 const PI = Math.PI;
+// sbuffo d'aria / vapore: sfere bianche che si allargano e svaniscono
+function puff(c, x, y, z, n = 14, color = 0xffffff) {
+  for (let i = 0; i < n; i++) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, depthWrite: false }));
+    m.position.set(x, y, z); c.scene.add(m); const v = new THREE.Vector3((Math.random() - 0.5) * 1.6, Math.random() * 1.2, (Math.random() - 0.5) * 1.6); let life = 1.1;
+    c.anim((dt) => { if (life <= 0) return; life -= dt; m.position.addScaledVector(v, dt); v.multiplyScalar(1 - dt * 2); m.scale.multiplyScalar(1 + dt * 2.5); m.material.opacity = Math.max(0, life / 1.1 * 0.7); if (life <= 0) c.scene.remove(m); });
+  }
+}
+// stormo di fenicotteri rosa che attraversa la stanza
+function flock(c, W, D, H) {
+  const pink = new THREE.MeshStandardMaterial({ color: 0xf48fb1, roughness: 0.6 });
+  for (let i = 0; i < 4; i++) {
+    const b = new THREE.Group(); const body = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 8), pink); body.scale.set(1, 0.6, 1.8); b.add(body);
+    const wl = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.14), new THREE.MeshStandardMaterial({ color: 0xf06292, side: THREE.DoubleSide })); wl.position.x = -0.22; b.add(wl); const wr = wl.clone(); wr.position.x = 0.22; b.add(wr);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.35, 6), pink); neck.rotation.x = PI / 2; neck.position.z = 0.3; b.add(neck);
+    b.position.set(-W / 2 - 1 - i * 0.8, Math.min(H - 0.6, 2.4) + (i % 2) * 0.25, -D / 4 + i * 0.5); b.rotation.y = PI / 2; c.scene.add(b);
+    let t = 0; c.anim((dt) => { if (t > 6) return; t += dt; b.position.x += dt * 3.2; const f = Math.sin(t * 10 + i) * 0.6; wl.rotation.z = f; wr.rotation.z = -f; if (t > 6) c.scene.remove(b); });
+  }
+}
 
 export const ROOMS = [
 // =====================================================================================
@@ -134,13 +153,13 @@ export const ROOMS = [
   teacher: { name: "Prof. Sanna", role: "Tecnologia meccanica", at: [1.8, 4.2], look: { shirt: 0x1d3f74, pants: 0x1d3f74, hair: 0x555555, beard: true, beardColor: 0x8d8d8d, glasses: true, hat: 0x1d3f74 } },
   tasks: [
     { id: "disegno", title: "Il disegno tecnico", step: () => "Calcola la lunghezza del perno dal disegno e impostala sulla CNC",
-      hints: ["Sul banco da lavoro c'è un disegno tecnico con delle misure (quote).", "La lunghezza totale L è la somma dei tre tratti del pezzo.", "25 + 40 + 15 = 80 mm. Sulla CNC scrivi 080."] },
+      hints: ["Il disegno è sul banco da lavoro vicino ai cartelli: guarda le tre misure.", "Somma le tre parti del perno: 25 + 40 + 15.", "Il perno è lungo 80 mm: sceglilo sulla CNC."] },
     { id: "tornio", title: "Il tornio in sicurezza", step: () => "Avvia il tornio n.1 seguendo le regole di sicurezza",
       hints: ["Prima di accendere una macchina ci si protegge e si controlla il pezzo.", "Le regole sono sul cartello giallo vicino al tornio.", "Ordine: occhiali → pezzo serrato → riparo chiuso → avvio."] },
   ],
   intro: [
     "Benvenuto in officina! Sono il professor Sanna. Qui si trasformano blocchi di metallo in pezzi precisissimi.",
-    "Mi serve un perno per una macchina. Il disegno tecnico è sul banco da lavoro: calcola la lunghezza e impostala sulla fresatrice CNC.",
+    "Mi serve un perno per una macchina. Il disegno tecnico è sul banco da lavoro: somma le misure e imposta la lunghezza sulla fresatrice CNC.",
     "E poi avvia il tornio numero 1… ma in sicurezza! Le regole sono sul cartello giallo.",
   ],
   build(c) {
@@ -167,8 +186,12 @@ export const ROOMS = [
     const dr = P.drawingTex();
     const sheet = c.place(P.poster(dr, 0.5, 0.36, false), W / 2 - 0.7, 0.8, -PI / 2, { y: 0.93, solid: false }); sheet.children[0].rotation.x = -PI / 2.3;
     c.interact(sheet, { label: "Guarda il disegno tecnico", point: new THREE.Vector3(W / 2 - 1.5, 0, 0.8), range: 2.3, use: () => c.canvasDoc("Disegno tecnico del perno", dr.image, "Le quote sono in millimetri. Quanto è lungo il pezzo in tutto?") });
+    // lavorazione: scintille, luce che lampeggia e perno che esce dalla CNC
+    const cncLight = new THREE.PointLight(0x66ccff, 0, 3); cncLight.position.set(0.4, 1.4, D / 2 - 1.2); c.scene.add(cncLight);
+    const perno = new THREE.Group(); const pm = mat(0xc9ccd0, { metal: 0.9, rough: 0.25 }); C(perno, 0, 0, 0, 0.025, 0.25, pm, 0.025, 16).rotation.z = Math.PI / 2; C(perno, 0.02, 0, 0, 0.045, 0.1, pm, 0.045, 16).rotation.z = Math.PI / 2; perno.visible = false; c.place(perno, 0.4, D / 2 - 1.3, 0, { y: 1.0, solid: false });
+    const machining = () => { let t = 0; sfx.pick(); c.anim((dt) => { if (t > 2.6) return; t += dt; cncLight.intensity = t < 2 ? (Math.sin(t * 30) > 0 ? 6 : 1) : 0; if (Math.floor(t * 6) !== Math.floor((t - dt) * 6) && t < 2) { /* scintille */ for (let k = 0; k < 6; k++) { const sp = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4), new THREE.MeshBasicMaterial({ color: 0xffd54f })); sp.position.set(0.4 + (Math.random() - 0.5) * 0.3, 1.1, D / 2 - 1.0); c.scene.add(sp); const v = new THREE.Vector3((Math.random() - 0.5) * 2, 1.5 + Math.random(), -Math.random()); let life = 0.6; c.anim((d2) => { if (life <= 0) return; life -= d2; v.y -= 6 * d2; sp.position.addScaledVector(v, d2); if (life <= 0) c.scene.remove(sp); }); } } if (t > 2 && !perno.visible) { perno.visible = true; } if (perno.visible) perno.rotation.y += dt * 3; }); };
     c.interact(cncM, { label: "Pannello della CNC", point: new THREE.Vector3(0.4, 0, D / 2 - 1.9), range: 2.4, when: () => !c.isDone("disegno"),
-      use: async () => { if (await c.puzzle({ type: "code", title: "Fresatrice CNC", body: `<p>Programma: <b>PERNO Ø30</b>. Inserisci la lunghezza totale <b>L</b> in millimetri (3 cifre).</p>`, answer: "080", okText: "Lunghezza impostata: la CNC lavora il pezzo!" })) { c.done("disegno"); c.give({ id: "perno", name: "Perno grezzo", icon: "🔩", desc: "Uscito dalla CNC" }); c.prof("80 millimetri, esatto! Una misura sbagliata e il pezzo andava buttato."); } } });
+      use: async () => { if (await c.puzzle({ type: "quiz", kind: "Fresatrice CNC", title: "Imposta la lunghezza", body: `<div class="cnc-draw"><span style="flex:25">25</span><span style="flex:40">40</span><span style="flex:15">15</span></div><p class="muted" style="text-align:center;margin:4px 0 0">I tre pezzi del perno, in millimetri</p>`, questions: [{ q: "Quanto è lungo il perno in tutto?", options: ["65 mm", "80 mm", "95 mm"], correct: 1, explain: "25 + 40 + 15 = 80 mm." }] })) { machining(); c.done("disegno"); c.give({ id: "perno", name: "Perno grezzo", icon: "🔩", desc: "Uscito dalla CNC" }); c.prof("80 millimetri, esatto! Una misura sbagliata e il pezzo andava buttato."); } } });
     const sign = canvasTex("regoletornio", 400, 520, (g, w, h) => { g.fillStyle = "#f2c21b"; g.fillRect(0, 0, w, h); g.fillStyle = "#111"; g.font = "800 34px Inter"; g.textAlign = "center"; g.fillText("⚠ TORNIO", w / 2, 56); g.font = "600 26px Inter"; g.textAlign = "left"; ["1. Indossa gli occhiali", "2. Serra bene il pezzo", "3. Chiudi il riparo", "4. Avvia il motore"].forEach((t, i) => g.fillText(t, 30, 130 + i * 90)); });
     const sg = c.place(P.poster(sign, 0.5, 0.65), -W / 2 + 0.05, -9.0, PI / 2, { y: 1.7, solid: false });
     c.interact(sg, { label: "Leggi il cartello di sicurezza", point: new THREE.Vector3(-W / 2 + 1.0, 0, -9.0), range: 2.6, use: () => c.canvasDoc("Regole del tornio", sign.image) });
@@ -228,7 +251,7 @@ export const ROOMS = [
     const wbd = c.place(P.whiteboard(1.6, 1.0, sch), -2.6, D / 2 - 0.05, PI, { y: 1.6, solid: false });
     c.interact(wbd, { label: "Guarda lo schema pneumatico", point: new THREE.Vector3(-2.6, 0, D / 2 - 1), range: 2.4, use: () => c.canvasDoc("Schema pneumatico", sch.image) });
     c.interact(main, { label: "Collega i tubi del pannello", point: new THREE.Vector3(-1.4, 0, -D / 2 + 1.5), range: 2.2, when: () => !c.isDone("schema"),
-      use: async () => { if (await c.puzzle({ type: "wiring", title: "Pannello pneumatico", body: `<p>Da dove a dove va l'aria? Collega ogni componente al successivo.</p>`, left: ["Compressore", "Filtro", "Valvola 5/2"], right: ["Cilindro", "Filtro", "Valvola 5/2"], pairs: { 0: 1, 1: 2, 2: 0 }, okText: "Pssst! L'aria arriva al cilindro." })) { c.done("schema"); c.prof("Perfetto, il circuito è chiuso! Ora vieni al nastro trasportatore."); } } });
+      use: async () => { if (await c.puzzle({ type: "wiring", title: "Pannello pneumatico", body: `<p>Da dove a dove va l'aria? Collega ogni componente al successivo.</p>`, left: ["Compressore", "Filtro", "Valvola 5/2"], right: ["Cilindro", "Filtro", "Valvola 5/2"], pairs: { 0: 1, 1: 2, 2: 0 }, okText: "Pssst! L'aria arriva al cilindro." })) { puff(c, -1.4, 1.3, -D / 2 + 0.7, 18); sfx.pick(); c.done("schema"); c.prof("Pssst! Senti l'aria? Il circuito è chiuso! Ora vieni al nastro trasportatore."); } } });
     c.interact(conv, { label: "Pulsante START del nastro", point: new THREE.Vector3(W / 2 - 1.5, 0, 0.4), range: 2.2, when: () => !c.isDone("ciclo"),
       use: async () => {
         if (!c.isDone("schema")) { c.toast("Il nastro non parte: il pannello pneumatico è ancora scollegato."); sfx.bad(); return; }
@@ -295,7 +318,7 @@ export const ROOMS = [
     const pad = new THREE.Group(); B(pad, 0, 0, 0, 0.3, 0.22, 0.04, M.black); plane(pad, 0, 0, 0.021, 0.26, 0.18, mat(0x2f80c0, { emissive: 0x2f80c0, ei: 0.8 }));
     c.place(pad, -1.4, 1.75, -0.6, { y: 0.95, solid: false }); pad.rotation.x = -0.9;
     c.interact(pad, { label: "Abbina foto e nomi", point: new THREE.Vector3(-1.4, 0, 2.4), range: 2, when: () => !c.isDone("uccelli"),
-      use: async () => { if (await c.puzzle({ type: "wiring", title: "Chi è chi?", body: `<p>Abbina ogni foto numerata al suo nome.</p>`, left: ["Foto 1", "Foto 2", "Foto 3"], right: ["Fenicottero rosa", "Airone bianco", "Folaga"], pairs: { 0: 1, 1: 2, 2: 0 } })) { c.done("uccelli"); c.prof("Occhio da naturalista! Ora gli schermi: chi mangia chi nello stagno?"); } } });
+      use: async () => { if (await c.puzzle({ type: "wiring", title: "Chi è chi?", body: `<p>Abbina ogni foto numerata al suo nome.</p>`, left: ["Foto 1", "Foto 2", "Foto 3"], right: ["Fenicottero rosa", "Airone bianco", "Folaga"], pairs: { 0: 1, 1: 2, 2: 0 } })) { flock(c, W, D, c.H); c.done("uccelli"); c.prof("Guarda, uno stormo di fenicotteri! Occhio da naturalista! Ora gli schermi: chi mangia chi nello stagno?"); } } });
     c.interact(s2, { label: "Schermo interattivo: catena alimentare", point: new THREE.Vector3(1.2, 0, -D / 2 + 1.2), range: 2.2, when: () => !c.isDone("catena"),
       use: async () => {
         if (!c.isDone("uccelli")) { c.toast("Lo schermo dice: prima riconosci gli uccelli delle foto!"); return; }
@@ -323,7 +346,7 @@ export const ROOMS = [
   teacher: { name: "Prof. Mocci", role: "Informatica", photo: "foto/prof/mocci.jpg", face: "foto/prof/face_mocci.png", at: [3.4, 3.2], look: { shirt: 0xf4f6fa, coat: 0x262c3d, tie: 0x8a1c2e, pants: 0x262c3d, hair: 0x2a221c, shoes: 0x15151a, sole: 0x15151a, skinTone: 0xcf977f } },
   tasks: [
     { id: "password", title: "Il PC bloccato", step: () => "Trova la password e sblocca il PC del prof",
-      hints: ["Chi dimentica la password la scrive su un post-it… guarda vicino ai portatili.", "Il post-it giallo è sul tavolo esagonale più vicino alla porta. Leggi bene: al contrario!", "OTHOCA al contrario è ACOHTO. Scrivila nel terminale del PC del prof."] },
+      hints: ["Il prof scrive la password su un post-it: cercalo sui tavoli esagonali.", "Il post-it dice OTHOCA al contrario: leggila dall'ultima lettera alla prima.", "La password è ACOHTO."] },
     { id: "stampa", title: "Stampa la chiave in 3D", step: (c) => c.isDone("password") ? "Programma la stampante 3D e ritira la chiave" : "Prima sblocca il PC del prof",
       hints: ["Una stampante 3D prima riceve il file, poi si scalda, poi stampa.", "Il pezzo va raffreddato prima di staccarlo dal piatto.", "Ordine: Carica il file → Scalda l'ugello → Stampa strato per strato → Raffredda e stacca."] },
   ],
@@ -350,17 +373,29 @@ export const ROOMS = [
     // post-it
     const pi = c.place(P.postIt("password:\nOTHOCA\nal contrario!"), -3, -0.55, 0, { y: 0.78, solid: false }); pi.rotation.x = -PI / 2;
     c.interact(pi, { label: "Leggi il post-it", point: new THREE.Vector3(-3, 0, 0.3), range: 1.9, use: () => c.doc("Post-it giallo", `<p style="font:600 26px 'Baloo 2';text-align:center">password:<br><b>OTHOCA</b><br>al contrario!</p>`) });
+    // quando la password è giusta lo schermo diventa verde con "ACCESSO OK"
+    const okTex = canvasTex("pcok", 256, 150, (g, w, h) => { g.fillStyle = "#0b3d1a"; g.fillRect(0, 0, w, h); g.fillStyle = "#4cff7a"; g.font = "800 30px Inter"; g.textAlign = "center"; g.fillText("ACCESSO OK", w / 2, 70); g.font = "600 18px Inter"; g.fillText("chiave.stl → stampante", w / 2, 105); });
+    const pcOk = () => { pc.traverse((o) => { if (o.isMesh && o.material && o.material.emissiveMap) { o.material.map = okTex; o.material.emissiveMap = okTex; o.material.needsUpdate = true; } }); sfx.ok(); };
     c.interact(pc, { label: "PC del prof", point: new THREE.Vector3(-1.8, 0, 3.0), range: 1.8, when: () => !c.isDone("password"),
-      use: async () => { if (await c.puzzle({ type: "terminal", title: "PC del prof · login", intro: ["OthocaOS 4.2 — accesso riservato", "Utente: prof.deiana", "Digita la password e premi Invio. (digita 'aiuto' se serve)"],
-        run: (v, print) => { if (v === "acohto") { print("Accesso consentito. Benvenuto, prof!", "#7dff9b"); return true; } if (v === "aiuto" || v === "help") { print("Promemoria: la password è scritta su un post-it giallo."); return false; } if (v === "othoca") { print("Quasi! Leggi bene il post-it…", "#ffd54f"); return false; } print("Password errata.", "#ff8a8a"); return false; } })) {
+      use: async () => { if (await c.puzzle({ type: "code", kind: "PC del prof", title: "Login · prof.deiana", body: `<p>Componi la password con le lettere. Il post-it diceva: <b>OTHOCA</b> … al contrario!</p>`, answer: "ACOHTO", keys: ["O", "T", "H", "C", "A", "⌫", "OK"], okText: "Accesso consentito!" })) {
+        pcOk();
         c.done("password"); c.prof("Sei un hacker buono! Ora sulla stampante 3D c'è il file della chiave: programmala tu.");
       } } });
-    c.interact(pr, { label: "Stampante 3D", point: new THREE.Vector3(3.8, 0, 0.2), range: 1.9, when: () => !c.has("chiave3d"),
+    // stampa animata: la chiave cresce strato per strato sul piatto
+    let printing = false;
+    const printKey = (then) => {
+      if (printing) return; printing = true;
+      const key = new THREE.Group(); const km = mat(0xf0559a, { rough: 0.5 }); B(key, 0, 0, 0, 0.16, 0.02, 0.04, km); C(key, -0.1, 0, 0, 0.045, 0.02, km, 0.045, 18); B(key, 0.06, 0, 0.03, 0.02, 0.02, 0.03, km); B(key, 0.03, 0, 0.03, 0.02, 0.02, 0.025, km);
+      key.position.set(0, 0.14, 0); key.scale.y = 0.01; pr.add(key);
+      const head = pr.children.find((ch) => ch.geometry && ch.position.y > 0.4 && ch.position.y < 0.45);
+      let t = 0; c.toast("La stampante si scalda e inizia a stampare…"); c.anim((dt) => { if (t > 3) return; t += dt; key.scale.y = Math.min(1, t / 2.6); if (head) head.position.x = Math.sin(t * 14) * 0.12; if (t > 3) { if (head) head.position.x = 0; key.visible = false; then(); } });
+    };
+    c.interact(pr, { label: "Stampante 3D", point: new THREE.Vector3(3.8, 0, 0.2), range: 1.9, when: () => !c.has("chiave3d") && !printing,
       use: async () => {
         if (!c.isDone("password")) { c.toast("La stampante dice: 'In attesa di un file dal PC del prof'."); return; }
         if (await c.puzzle({ type: "blocks", title: "Programma la stampante 3D", body: `<p>Metti i comandi in ordine per stampare <b>chiave.stl</b>.</p>`, blocks: [
           { t: "Scalda l'ugello a 200 °C", color: "#e53935" }, { t: "Carica il file chiave.stl", color: "#1e88e5" }, { t: "Stampa strato per strato", color: "#43a047" }, { t: "Raffredda e stacca il pezzo", color: "#8e24aa" }], answer: [1, 0, 2, 3] })) {
-          c.give({ id: "chiave3d", name: "Chiave stampata in 3D", icon: "🔑", desc: "Rosa Othoca, ancora tiepida" }); c.done("stampa"); c.prof("Ecco la chiave! Con un programma ben ordinato si costruisce di tutto.");
+          printKey(() => { c.give({ id: "chiave3d", name: "Chiave stampata in 3D", icon: "🔑", desc: "Rosa Othoca, ancora tiepida" }); c.done("stampa"); c.prof("Ecco la chiave! Con un programma ben ordinato si costruisce di tutto."); });
         }
       } });
   },
