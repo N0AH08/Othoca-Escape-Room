@@ -28,6 +28,16 @@ let state = "loading"; // loading | menu | hub | map | room | win
 const screens = ["loading", "menu", "hub", "map"];
 function show(name) { for (const s of screens) $(s).hidden = s !== name; $("hud").hidden = name !== "room"; }
 
+// ---------- stelle, gradi e scintille ----------
+const starsFor = (t, hints) => (hints === 0 && t < 240 ? 3 : hints <= 2 && t < 480 ? 2 : 1);
+const totalStars = () => Object.values(progress.rooms).reduce((a, r) => a + (r.stars || 1), 0);
+const RANKS = [[0, "Matricola curiosa"], [6, "Apprendista di laboratorio"], [12, "Tecnico in erba"], [18, "Esperto Othoca"], [24, "Leggenda dell'Othoca"]];
+const rankOf = (n) => RANKS.filter(([k]) => n >= k).pop()[1];
+function refreshMenuStars() { const el = $("menuStars"); if (el) el.innerHTML = `<b>${totalStars()}</b> / ${ROOMS.length * 3} ⭐`; }
+(function sparks() { const m = $("menu"); for (let i = 0; i < 22; i++) { const sp = document.createElement("i"); sp.className = "spark"; sp.style.left = Math.random() * 100 + "%"; sp.style.animationDuration = 8 + Math.random() * 10 + "s"; sp.style.animationDelay = -Math.random() * 15 + "s"; const sz = 3 + Math.random() * 5; sp.style.width = sp.style.height = sz + "px"; m.appendChild(sp); } })();
+function showBanner(title, sub = "") { const b = $("banner"); b.innerHTML = `<div class="bn">${esc(title)}${sub ? `<small>${esc(sub)}</small>` : ""}</div>`; b.hidden = false; clearTimeout(showBanner.t); showBanner.t = setTimeout(() => (b.hidden = true), 2300); }
+function showRoomTitle(def) { const r = $("roomTitle"); r.innerHTML = `<div class="rt"><small>${esc(def.indirizzo)}</small><h2>${esc(def.name)}</h2><div>${def.tasks.length} sfide · ${def.teacher.name}</div></div>`; r.hidden = false; setTimeout(() => (r.hidden = true), 2900); }
+
 // ---------- menu ----------
 $("menu").addEventListener("click", (e) => {
   const a = e.target.closest("[data-act]")?.dataset.act; if (!a) return;
@@ -72,18 +82,19 @@ async function setHubView(i) {
 }
 $("panoPrev").onclick = () => { sfx.click(); setHubView(hubIdx - 1); };
 $("panoNext").onclick = () => { sfx.click(); setHubView(hubIdx + 1); };
-$("panoBack").onclick = () => { hubPano.stop(); state = "menu"; show("menu"); };
+$("panoBack").onclick = () => { hubPano.stop(); state = "menu"; show("menu"); refreshMenuStars(); };
 $("enterBtn").onclick = () => { sfx.click(); openMap(); };
 
 // ---------- mappa ----------
 function openMap() {
   hubPano.stop(); state = "map"; show("map"); if (!musicOn) { music(7); }
   const done = ROOMS.filter((r) => progress.rooms[r.id]).length;
-  $("mapProgress").textContent = `${done} / ${ROOMS.length} stanze completate`;
+  $("mapProgress").innerHTML = `${done} / ${ROOMS.length} stanze · <span class="map-total">${totalStars()} ⭐</span> · ${rankOf(totalStars())}`;
   $("roomCards").innerHTML = ROOMS.map((r) => {
     const pr = progress.rooms[r.id];
     return `<div class="card" data-room="${r.id}">
       <div class="img" style="background-image:url(foto/${r.cardPhoto}.jpg)"></div>
+      ${pr ? `<span class="stars-won">${[1, 2, 3].map((k) => `<span class="${k <= (pr.stars || 1) ? "star-on" : "star-off"}">★</span>`).join("")}</span>` : ""}
       <span class="badge ${pr ? "done" : ""}">${pr ? "✓ Completata · " + fmtTime(pr.best) : "Da fare"}</span>
       <div class="body"><h3>${esc(r.name)}</h3><div class="ind">${esc(r.indirizzo)}</div>
       <div class="meta"><span>Difficoltà <span class="stars">${"★".repeat(r.difficulty)}${"☆".repeat(3 - r.difficulty)}</span></span><span>${r.tasks.length} sfide</span></div></div></div>`;
@@ -121,7 +132,7 @@ function buildRoom(def) {
     has: (id) => !!st.inv.find((x) => x.id === id),
     take: (id) => { st.inv = st.inv.filter((x) => x.id !== id); refreshHud(); },
     items: () => st.inv.slice(),
-    done: (tid) => { if (st.done[tid]) return; st.done[tid] = true; sfx.ok(); confetti(player.pos.x, player.y + 2.2, player.pos.y); const t = def.tasks.find((x) => x.id === tid); toast("✓ Sfida completata: " + t.title); refreshHud(); },
+    done: (tid) => { if (st.done[tid]) return; st.done[tid] = true; sfx.ok(); confetti(player.pos.x, player.y + 2.2, player.pos.y); const t = def.tasks.find((x) => x.id === tid); showBanner("SFIDA COMPLETATA!", t.title); refreshHud(); },
     isDone: (tid) => !!st.done[tid],
     toast, refresh: () => refreshHud(),
     doc: (t, h) => readDoc(t, h), canvasDoc: (t, cnv, note) => canvasDoc(t, cnv, note),
@@ -161,7 +172,7 @@ function buildRoom(def) {
   setTimeout(() => { $("loading").hidden = true; }, 150);
   stopMusic(); music(ROOMS.indexOf(def)); ambience(def.id);
   // la porta si chiude dietro al giocatore, poi il prof si presenta
-  setTimeout(() => { sfx.door(); toast("La porta si è chiusa dietro di te…"); }, 500);
+  setTimeout(() => { sfx.door(); showRoomTitle(def); }, 300);
   setTimeout(() => {
     if (state !== "room" || room !== def) return;
     talkLines(def.intro, () => { introDone = true; timing = true; refreshHud(); });
@@ -197,8 +208,11 @@ function tryExit() {
 function win() {
   state = "win"; document.exitPointerLock?.(); sfx.win();
   const prev = progress.rooms[room.id]; const t = timer; const record = !prev || t < prev.best;
-  progress.rooms[room.id] = { best: record ? t : prev.best, hints: ctx.state.hintsUsed }; save(SAVE_KEY, progress);
-  const p = modal(`<div class="eyebrow">${esc(room.name)}</div><h2>🎉 Sei uscito!</h2>
+  const stars = starsFor(t, ctx.state.hintsUsed); const xp = 100 * stars + Math.max(0, 300 - Math.round(t));
+  progress.rooms[room.id] = { best: record ? t : prev.best, hints: ctx.state.hintsUsed, stars: Math.max(stars, prev?.stars || 0) }; save(SAVE_KEY, progress);
+  const p = modal(`<div class="eyebrow">${esc(room.name)}</div><h2 style="text-align:center">🎉 Sei uscito!</h2>
+    <div class="win-stars">${[1, 2, 3].map((k) => `<i class="${k <= stars ? "on" : ""}" style="animation-delay:${0.25 + k * 0.25}s">★</i>`).join("")}</div>
+    <div class="win-xp">+${xp} XP</div><div class="win-rank">${esc(rankOf(totalStars()))}</div>
     <div class="win-stats"><div><b>${fmtTime(t)}</b>tempo</div><div><b>${ctx.state.hintsUsed}</b>aiuti usati</div><div><b>${record ? "🏆" : fmtTime(prev.best)}</b>${record ? "nuovo record!" : "record"}</div></div>
     <div class="curio"><div class="eyebrow">Lo sapevi? · ${esc(room.indirizzo)}</div><p style="margin:6px 0 0">${esc(room.curiosity)}</p></div>
     <div class="row"><button class="btn" data-again>↺ Rigioca</button><button class="btn primary" data-map>Scegli un'altra stanza →</button></div>`, { closable: false });
@@ -380,7 +394,7 @@ function loop() {
   $("loadBar").style.width = "70%";
   await Promise.all([new Promise((r) => { const img = new Image(); img.onload = img.onerror = r; img.src = "foto/entrance_01.jpg"; }), loadCharacterModel(), loadTeacherModel()]);
   $("loadBar").style.width = "100%";
-  setTimeout(() => { state = "menu"; show("menu"); }, 200);
+  setTimeout(() => { state = "menu"; show("menu"); refreshMenuStars(); }, 200);
   loop();
   // scorciatoia per i test: index.html#stanza=chimica
   const m = location.hash.match(/stanza=(\w+)/); if (m && ROOMS.find((r) => r.id === m[1])) setTimeout(() => startRoom(m[1]), 300);

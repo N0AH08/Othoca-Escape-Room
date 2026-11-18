@@ -176,3 +176,50 @@ kbd { font: 700 12px Inter, sans-serif; padding: 2px 7px; border-radius: 6px; ba
 .objbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), #ffd166); transition: width .5s; }
 .objhint { font-size: 12px; color: var(--muted); margin-top: 6px; }
 .objhint span { color: var(--pink); }
+
+/* ===== design "da gioco": menu animato, mappa con stelle, cartelloni e banner ===== */
+#menu { background: #0d090f; overflow: hidden; }
+#menu::before { content: ""; position: absolute; inset: -10%; background: url(foto/entrance_01.jpg) center/cover; filter: blur(3px) saturate(1.2) brightness(.55); animation: pan 40s linear infinite alternate; }
+#menu::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 40%, rgba(240,85,154,.25), transparent 55%), linear-gradient(180deg, rgba(13,9,15,.2), rgba(13,9,15,.9)); }
+@keyframes pan { from { transform: scale(1.1) translateX(-4%); } to { transform: scale(1.2) translateX(4%); } }
+.menu-card { position: relative; z-index: 2; background: rgba(20,13,22,.55); backdrop-filter: blur(10px); border: 1px solid rgba(240,85,154,.35); box-shadow: 0 0 60px rgba(240,85,154,.25), 0 30px 80px rgba(0,0,0,.6); }
+.menu-card .logo { animation: float 3s ease-in-out infinite; filter: drop-shadow(0 0 18px rgba(240,85,154,.7)); }
+.menu-card h1 { font-size: 64px; letter-spacing: .5px; text-shadow: 0 0 24px rgba(240,85,154,.55), 0 4px 0 rgba(0,0,0,.4); animation: titlein .9s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes titlein { from { transform: scale(.6); opacity: 0; } }
+.menu-stats { display: flex; justify-content: center; gap: 10px; margin: 4px 0 20px; flex-wrap: wrap; }
+.menu-stats span { font: 800 13px Inter; letter-spacing: .08em; text-transform: uppercase; padding: 6px 12px; border-radius: 99px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); }
+.menu-stats b { color: var(--pink); }
+.btn.primary.big { animation: glow 2s ease-in-out infinite; }
+@keyframes glow { 50% { box-shadow: 0 0 0 8px rgba(240,85,154,.18), 0 8px 30px rgba(240,85,154,.55); transform: scale(1.03); } }
+.spark { position: absolute; z-index: 1; width: 6px; height: 6px; border-radius: 50%; background: #ffd1e6; box-shadow: 0 0 10px #f0559a; animation: rise linear infinite; opacity: .8; }
+@keyframes rise { from { transform: translateY(110vh); } to { transform: translateY(-10vh); } }
+
+.card { transition: transform .2s cubic-bezier(.2,1.4,.4,1), box-shadow .2s, border-color .2s; }
+.card:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 0 0 2px var(--pink), 0 18px 40px rgba(240,85,154,.3); }
+.card .img { transition: background-size .4s; }
+.card:hover .img { background-size: 220% auto; }
+.card .stars-won { position: absolute; top: 10px; left: 10px; font-size: 18px; letter-spacing: 2px; text-shadow: 0 2px 6px rgba(0,0,0,.8); }
+.star-off { color: rgba(255,255,255,.3); } .star-on { color: #ffd166; }
+.map-total { font: 800 20px "Baloo 2"; color: #ffd166; }
+
+/* cartellone d'ingresso nella stanza */
+#roomTitle { position: fixed; inset: 0; z-index: 16; display: grid; place-items: center; pointer-events: none; }
+#roomTitle .rt { text-align: center; padding: 26px 40px; border-radius: 22px; background: linear-gradient(135deg, rgba(240,85,154,.92), rgba(224,36,94,.92)); box-shadow: 0 20px 60px rgba(0,0,0,.5); animation: rtin 2.8s cubic-bezier(.2,1.4,.4,1) both; }
+#roomTitle .rt small { font: 800 13px Inter; letter-spacing: .18em; text-transform: uppercase; opacity: .9; }
+#roomTitle .rt h2 { font: 800 46px/1.05 "Baloo 2"; margin: 6px 0; }
+#roomTitle .rt div { font-weight: 600; }
+@keyframes rtin { 0% { transform: scale(.4) rotate(-6deg); opacity: 0; } 18% { transform: scale(1.06) rotate(1deg); opacity: 1; } 26% { transform: scale(1); } 80% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.1); } }
+
+/* banner "sfida completata" */
+#banner { position: fixed; left: 50%; top: 30%; z-index: 17; transform: translate(-50%, -50%); pointer-events: none; text-align: center; }
+#banner .bn { font: 800 44px/1 "Baloo 2"; color: #fff; padding: 16px 30px; border-radius: 18px; background: linear-gradient(135deg, #2ecc71, #18a058); box-shadow: 0 0 0 4px rgba(255,255,255,.25), 0 20px 50px rgba(0,0,0,.45); animation: bnin 2.2s cubic-bezier(.2,1.6,.4,1) both; }
+#banner .bn small { display: block; font: 700 16px Inter; margin-top: 6px; opacity: .95; }
+@keyframes bnin { 0% { transform: scale(.3); opacity: 0; } 15% { transform: scale(1.12); opacity: 1; } 25% { transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px); } }
+
+/* vittoria con stelle */
+.win-stars { display: flex; justify-content: center; gap: 12px; margin: 6px 0 4px; }
+.win-stars i { font-style: normal; font-size: 56px; color: rgba(255,255,255,.18); transform: scale(0); animation: starpop .5s cubic-bezier(.2,1.8,.4,1) forwards; }
+.win-stars i.on { color: #ffd166; text-shadow: 0 0 20px rgba(255,209,102,.8); }
+@keyframes starpop { to { transform: scale(1); } }
+.win-rank { text-align: center; font: 800 22px "Baloo 2"; color: var(--blue); margin-bottom: 4px; }
+.win-xp { text-align: center; font: 800 18px Inter; color: #ffd166; }
