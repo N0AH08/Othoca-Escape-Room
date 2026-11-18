@@ -19,7 +19,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.82;
+renderer.toneMappingExposure = 0.8;
 export const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.05, 200);
 function fitCamera() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.fov = camera.aspect < 1 ? 68 : 58; camera.updateProjectionMatrix(); }
 fitCamera(); addEventListener("resize", fitCamera);
@@ -715,10 +715,10 @@ function buildComposer() {
     ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
     c.addPass(ao);
   }
-  c.addPass(new UnrealBloomPass(new THREE.Vector2(w, h), 0.22, 0.4, 2.2));
+  c.addPass(new UnrealBloomPass(new THREE.Vector2(w, h), 0.3, 0.45, 2.0));
   c.addPass(new OutputPass());
   c.addPass(new ShaderPass({ uniforms: { tDiffuse: { value: null }, uTime: { value: 0 } }, vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-    fragmentShader: "uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv; float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)) + uTime) * 43758.5453); } void main(){ vec4 c = texture2D(tDiffuse, vUv); float l = dot(c.rgb, vec3(0.299,0.587,0.114)); c.rgb = mix(vec3(l), c.rgb, 0.9); c.rgb = c.rgb * vec3(1.02, 1.0, 0.97); float v = smoothstep(0.95, 0.35, distance(vUv, vec2(0.5))); c.rgb *= mix(0.88, 1.0, v);  gl_FragColor = c; }" }));
+    fragmentShader: "uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv; float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)) + uTime) * 43758.5453); } void main(){ vec4 c = texture2D(tDiffuse, vUv); float l = dot(c.rgb, vec3(0.299,0.587,0.114)); c.rgb = mix(vec3(l), c.rgb, 1.14); c.rgb = mix(c.rgb, c.rgb * c.rgb * (3.0 - 2.0 * c.rgb), 0.22); c.rgb = c.rgb * vec3(1.02, 1.0, 0.98); c.rgb = clamp(c.rgb, 0.0, 1.0); float v = smoothstep(0.95, 0.35, distance(vUv, vec2(0.5))); c.rgb *= mix(0.88, 1.0, v);  gl_FragColor = c; }" }));
   gfx.composer = c; gfx.scene = world.scene;
 }
 export function setQuality(q) { gfx.quality = q; if (gfx.composer) { gfx.composer.dispose?.(); gfx.composer = null; } }

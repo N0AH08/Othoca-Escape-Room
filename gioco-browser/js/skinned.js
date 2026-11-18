@@ -173,28 +173,39 @@ async function teacherSkin(look) {
   const c = document.createElement("canvas"); c.width = c.height = 1024; const g = c.getContext("2d");
   g.drawImage(kBase.baseSkin, 0, 0);
   const id = g.getImageData(0, 0, 1024, 1024), d = id.data;
-  const skin = new THREE.Color(look.skinTone || look.skin || 0xe0a988), hair = new THREE.Color(look.hair || 0x2a221c);
+  // colori in sRGB (prima venivano letti in spazio lineare: pelle e capelli risultavano troppo scuri)
+  const rgb = (n) => [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const skinHex = look.skinTone || look.skin || 0xeab894, sk = rgb(skinHex), hr = rgb(look.hair || 0x2a221c);
+  const skin = new THREE.Color(skinHex);
   for (let i = 0; i < d.length; i += 4) {
     const r = d[i], gg = d[i + 1], b = d[i + 2];
-    if (r > 200 && gg > 110 && gg < 175 && b > 80 && b < 145) { const k = (r + gg + b) / (245 + 147 + 115); d[i] = skin.r * 255 * k; d[i + 1] = skin.g * 255 * k; d[i + 2] = skin.b * 255 * k; } // pelle
-    else if (r < 110 && r > 50 && gg < 45 && b < 40) { d[i] = hair.r * 255; d[i + 1] = hair.g * 255; d[i + 2] = hair.b * 255; } // capelli
+    if (r > 200 && gg > 110 && gg < 175 && b > 80 && b < 145) { const k = Math.min(1.08, (r + gg + b) / (245 + 147 + 115)); d[i] = Math.min(255, sk[0] * k); d[i + 1] = Math.min(255, sk[1] * k); d[i + 2] = Math.min(255, sk[2] * k); } // pelle
+    else if (r < 110 && r > 50 && gg < 45 && b < 40) { d[i] = hr[0]; d[i + 1] = hr[1]; d[i + 2] = hr[2]; } // capelli
   }
   g.putImageData(id, 0, 0);
   // maglia / giacca (riquadro del busto e delle maniche)
   const top = hex(look.coat || look.shirt);
   g.fillStyle = top; g.fillRect(0, 490, 611, 534);
   const sh = g.createLinearGradient(0, 490, 0, 1024); sh.addColorStop(0, "rgba(255,255,255,.08)"); sh.addColorStop(1, "rgba(0,0,0,.18)"); g.fillStyle = sh; g.fillRect(0, 490, 611, 534);
-  if (look.coat) { g.fillStyle = hex(look.shirt); g.beginPath(); g.moveTo(215, 490); g.lineTo(425, 490); g.lineTo(350, 930); g.lineTo(290, 930); g.closePath(); g.fill(); if (look.tie) { g.fillStyle = hex(look.tie); g.beginPath(); g.moveTo(305, 495); g.lineTo(335, 495); g.lineTo(345, 860); g.lineTo(320, 900); g.lineTo(295, 860); g.closePath(); g.fill(); } g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 6; g.beginPath(); g.moveTo(215, 490); g.lineTo(290, 930); g.moveTo(425, 490); g.lineTo(350, 930); g.stroke(); for (const y of [800, 880]) { g.fillStyle = "#222"; g.beginPath(); g.arc(320, y, 9, 0, 7); g.fill(); } }
-  else { g.fillStyle = "rgba(0,0,0,.18)"; g.beginPath(); g.ellipse(320, 492, 80, 26, 0, 0, Math.PI); g.fill(); }
+  if (look.coat) {
+    // fronte del busto nel riquadro UV: collo a y≈800, vita a y=1024. Scollo a V con camicia, revers e bottoni
+    const N = 800;
+    g.fillStyle = hex(look.shirt); g.beginPath(); g.moveTo(262, N - 4); g.lineTo(378, N - 4); g.lineTo(320, N + 120); g.closePath(); g.fill();
+    if (look.tie) { g.fillStyle = hex(look.tie); g.beginPath(); g.moveTo(312, N - 2); g.lineTo(328, N - 2); g.lineTo(332, N + 85); g.lineTo(320, N + 105); g.lineTo(308, N + 85); g.closePath(); g.fill(); }
+    g.fillStyle = "rgba(0,0,0,.25)"; for (const sx of [1, -1]) { g.beginPath(); g.moveTo(320 - sx * 58, N - 4); g.lineTo(320 - sx * 88, N + 6); g.lineTo(320 - sx * 34, N + 80); g.lineTo(320, N + 120); g.closePath(); g.fill(); }
+    g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 4; g.beginPath(); g.moveTo(320, N + 120); g.lineTo(320, 1024); g.stroke();
+    g.fillStyle = "rgba(0,0,0,.6)"; for (const y of [N + 150, N + 195]) { g.beginPath(); g.arc(330, y, 7, 0, 7); g.fill(); }
+  }
   // maniche: strisce delle braccia (0-150 e 490-611), dalla spalla (in alto) alla mano; corte = pelle sotto il gomito
   if (look.sleeves === "short") { const sk = g.createLinearGradient(0, 640, 0, 680); g.fillStyle = hex(skin.getHex()); g.fillRect(0, 660, 150, 364); g.fillRect(490, 660, 121, 364); g.fillStyle = "rgba(0,0,0,.25)"; g.fillRect(0, 652, 150, 8); g.fillRect(490, 652, 121, 8); void sk; }
-  if (look.necklace) { g.strokeStyle = hex(look.necklace); g.lineWidth = 7; g.beginPath(); g.ellipse(320, 500, 70, 40, 0, 0, Math.PI); g.stroke(); }
-  if (look.whistle) { g.strokeStyle = "#e0245e"; g.lineWidth = 6; g.beginPath(); g.moveTo(270, 490); g.lineTo(320, 600); g.lineTo(370, 490); g.stroke(); g.fillStyle = "#c0c4c8"; g.fillRect(305, 595, 32, 18); }
+  if (look.necklace) { g.strokeStyle = hex(look.necklace); g.lineWidth = 7; g.beginPath(); g.ellipse(320, 792, 50, 34, 0, 0, Math.PI); g.stroke(); g.fillStyle = hex(look.necklace); g.beginPath(); g.arc(320, 828, 8, 0, 7); g.fill(); }
+  if (look.whistle) { g.strokeStyle = "#e0245e"; g.lineWidth = 6; g.beginPath(); g.moveTo(275, 798); g.lineTo(320, 900); g.lineTo(365, 798); g.stroke(); g.fillStyle = "#c0c4c8"; g.fillRect(305, 898, 32, 18); }
   // pantaloni e scarpe
   g.fillStyle = hex(look.pants || 0x2b2f3a); g.fillRect(611, 764, 413, 260); g.fillStyle = "rgba(0,0,0,.25)"; g.fillRect(611, 895, 413, 8);
   g.fillStyle = hex(look.shoes || 0x1c1c1c); g.fillRect(639, 134, 185, 390); // scarpe
   g.fillStyle = hex(skin.getHex()); g.fillRect(824, 134, 200, 390); // mani
   g.fillStyle = hex(look.pants || 0x2b2f3a); g.fillRect(639, 524, 385, 240); // bacino
+  if (look.beard && !look.face) { const bc = hex(look.beardColor || look.hair || 0x2a221c); g.fillStyle = bc; g.globalAlpha = 0.85; g.beginPath(); g.ellipse(322, 300, 95, 60, 0, 0, Math.PI); g.fill(); g.beginPath(); g.ellipse(322, 285, 40, 10, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
   // foto del viso sul lato frontale della testa
   if (look.face) { const f = await loadImg(look.face); if (f) { g.fillStyle = hex(skin.getHex()); g.beginPath(); g.ellipse(322, 225, 92, 120, 0, 0, 7); g.fill(); g.drawImage(f, 322 - 100, 225 - 140, 200, 280); } }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.flipY = true;
@@ -215,6 +226,7 @@ export function makeTeacher(look = {}) {
   let wRun = 0, talking = 0, waving = false, look2 = { x: 0, y: 0 };
   if (bones.Head) bones.Head.scale.setScalar(0.74); // testa meno da cartone, proporzioni più reali
   const headG = new THREE.Group(); if (bones.Head) bones.Head.add(headG);
+  addAccessories(root, bones, look);
   return {
     root, head: headG,
     animate(dt, speed) {
@@ -227,6 +239,41 @@ export function makeTeacher(look = {}) {
     wave() { waving = true; }, rest() { waving = false; }, talk() { talking = 1; },
     lookAt(dx, dy) { look2.x += (Math.max(-0.6, Math.min(0.6, dx)) - look2.x) * 0.1; look2.y += (Math.max(-0.3, Math.min(0.3, -dy)) - look2.y) * 0.1; },
   };
+}
+
+// ---------- accessori (capelli lunghi, occhiali, cappello, sciarpa, camice lungo) ----------
+function boneGroup(root, bone) {
+  // gruppo agganciato all'osso ma con unità in metri e assi del personaggio
+  root.updateMatrixWorld(true);
+  const g = new THREE.Group(); const ws = new THREE.Vector3(); bone.getWorldScale(ws); const rs = new THREE.Vector3(); root.getWorldScale(rs);
+  g.scale.set(rs.x / ws.x, rs.y / ws.y, rs.z / ws.z);
+  const qb = new THREE.Quaternion(); bone.getWorldQuaternion(qb); const qr = new THREE.Quaternion(); root.getWorldQuaternion(qr); g.quaternion.copy(qb.invert().multiply(qr));
+  bone.add(g); return g;
+}
+function addAccessories(root, bones, look) {
+  const H = bones.Head; if (!H) return;
+  const std = (c, r = 0.7) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+  // misura la testa in metri, nello spazio del personaggio
+  root.updateMatrixWorld(true);
+  const hw = new THREE.Vector3(); H.getWorldPosition(hw); root.worldToLocal(hw);
+  const g = boneGroup(root, H); g.updateMatrixWorld(true);
+  const hairM = std(look.hair || 0x2a221c, 0.85);
+  // centro testa ~0.13 m sopra l'osso del collo
+  const C = new THREE.Vector3(0, 0.185, 0.0), R = 0.155;
+  if (look.female || look.hairLong) {
+    const back = new THREE.Mesh(new THREE.CapsuleGeometry(R * 0.95, 0.16, 8, 20), hairM); back.scale.set(1.12, 1, 0.6); back.position.set(C.x, C.y - 0.07, C.z - 0.07); back.castShadow = true; g.add(back);
+    if (look.hairStyle === "curly") for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; const b2 = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), hairM); b2.position.set(C.x + Math.cos(a) * R * 0.95, C.y + 0.02 + Math.sin(a) * R * 0.7, C.z - 0.03 - Math.abs(Math.sin(a)) * 0.02); if (b2.position.z > -0.02 && b2.position.y < C.y + 0.06 && Math.abs(b2.position.x) < 0.06) continue; g.add(b2); }
+  }
+  if (look.glasses && !look.face) {
+    const fr = std(0x1a1a1a, 0.3);
+    for (const sx of [-1, 1]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.034, 0.005, 8, 24), fr); ring.position.set(C.x + sx * 0.055, C.y - 0.018, C.z + R * 1.04); g.add(ring); const arm = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.005, 0.15), fr); arm.position.set(C.x + sx * 0.098, C.y - 0.012, C.z + R * 0.55); g.add(arm); }
+    const br = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.005, 0.005), fr); br.position.set(C.x, C.y - 0.01, C.z + R * 1.06); g.add(br);
+  }
+  if (look.goggles) { const gm = new THREE.MeshPhysicalMaterial({ color: 0xbfe3ff, transparent: true, opacity: 0.35, roughness: 0.1 }); const gg = new THREE.Mesh(new THREE.CapsuleGeometry(0.03, 0.07, 6, 16), gm); gg.rotation.z = Math.PI / 2; gg.position.set(C.x, C.y + 0.085, C.z + R * 0.75); gg.rotation.x = -0.5; g.add(gg); }
+  if (look.hat) { const hm = std(look.hat, 0.8); const cap = new THREE.Mesh(new THREE.SphereGeometry(R * 1.1, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), hm); cap.scale.set(1.05, 0.9, 1.12); cap.position.set(C.x, C.y + 0.06, C.z - 0.01); g.add(cap); const visor = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.01, 24, 1, false, -Math.PI / 2, Math.PI), hm); visor.position.set(C.x, C.y + 0.065, C.z + R * 0.95); visor.rotation.x = 0.12; g.add(visor); }
+  const chest = bones.Chest || bones.Spine2 || bones.Spine1 || bones.Spine;
+  if (look.scarf && chest) { const cg = boneGroup(root, bones.Neck || chest); const sm = std(look.scarf, 0.9); const ring = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.03, 10, 24), sm); ring.rotation.x = Math.PI / 2; ring.position.set(0, 0.0, 0.0); cg.add(ring); const tail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.2, 0.02), sm); tail.position.set(0.04, -0.1, 0.08); cg.add(tail); }
+  if (look.longCoat && bones.Hips) { const cg = boneGroup(root, bones.Hips); const cm = std(look.coat || 0xf6f6f6, 0.8); cm.side = THREE.DoubleSide; const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.24, 0.42, 24, 1, true, Math.PI * 0.12, Math.PI * 1.76), cm); skirt.position.set(0, -0.2, -0.005); skirt.castShadow = true; cg.add(skirt); }
 }
 
 // ---------- esploratore (personaggio principale) ricreato sul modello umano Kenney ----------
