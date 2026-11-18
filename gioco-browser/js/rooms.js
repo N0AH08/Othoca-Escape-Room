@@ -613,3 +613,70 @@ export const ROOMS = [
 
 // aiuto: anche i blocchi delle gradinate fermano la camera
 function world_cam(c, mesh) { c.camBlock(mesh); }
+
+// =====================================================================================
+// Stanza segreta: si sblocca completando tutte e 8 le stanze. Ogni stanza regala una lettera:
+// in ordine formano O-R-I-S-T-A-N-O.
+export const SECRET_WORD = "ORISTANO";
+export const SECRET = {
+  id: "segreta", name: "L'Archivio segreto", indirizzo: "Stanza segreta", difficulty: 3, secret: true,
+  photos: [], cardPhoto: "entrance_01",
+  size: [8, 7, 3.2],
+  preload: [],
+  shell: () => ({ floorTex: TEX.parquet(), floorScale: 1.4, wall: 0x2c2338, ceil: 0x1e1828, windows: [] }),
+  spawn: [2.6, 2.4, PI * 0.8], exit: { side: "n", x: 2.6, color: 0x6a1b4d, glass: false }, entry: null,
+  teacher: { name: "Il custode Gino", role: "Guardiano dell'archivio", at: [-2.4, -1.6], look: { shirt: 0x37474f, pants: 0x263238, hair: 0x9e9e9e, beard: true, beardColor: 0xbdbdbd, glasses: true, hat: 0x37474f } },
+  tasks: [
+    { id: "parola", title: "La parola segreta", step: () => "Apri lo scrigno con le 8 lettere raccolte",
+      hints: ["Ogni stanza completata ti ha dato una lettera: le trovi sulla lavagna dell'archivio.", "Mettile nell'ordine delle stanze sulla mappa: formano il nome di una città.", "La parola è ORISTANO."] },
+    { id: "quiz", title: "Il quiz del fenicottero", step: () => "Rispondi alle domande del custode sul computer dell'archivio",
+      hints: ["Le risposte sono nelle curiosità che hai letto uscendo dalle stanze.", "Il logo dell'Othoca è un uccello rosa degli stagni.", "Fenicottero · Fenici · ZooMate."] },
+  ],
+  intro: [
+    "Ehi, tu! Nessuno entra nell'Archivio segreto dell'Othoca da anni…",
+    "Sono Gino, il custode. Se sei arrivato fin qui hai superato tutte le stanze della scuola: complimenti!",
+    "Nello scrigno c'è il Diploma d'onore dell'Othoca. Si apre con una parola di otto lettere: una per ogni stanza che hai completato.",
+  ],
+  build(c) {
+    const { W, D } = c;
+    const gold = mat(0xd4a017, { rough: 0.3, metal: 0.8 });
+    // scaffali dell'archivio pieni di faldoni
+    for (let i = 0; i < 4; i++) { c.place(P.shelfUnit(mat(0x4e342e), 0.9, 2.2), -W / 2 + 0.25, -2.2 + i * 1.1, PI / 2); }
+    for (let i = 0; i < 3; i++) c.place(P.shelfUnit(mat(0x4e342e), 0.9, 2.2), -1.5 + i * 1.0, -D / 2 + 0.25, 0);
+    c.place(P.bookStack(5), -2.0, 1.6, 0.4, { y: 0, solid: false });
+    c.place(P.plant(), W / 2 - 0.4, -D / 2 + 0.4, 0);
+    c.place(P.sofa(0x6a1b4d), W / 2 - 0.6, 0.2, -PI / 2);
+    c.place(P.wallClock(), 1.6, -D / 2 + 0.05, 0, { y: 2.3, solid: false });
+    // lavagna con le lettere raccolte
+    const letters = c.state.letters || "";
+    const lines = [{ t: "LE LETTERE DELLE STANZE", bold: true, size: 50, color: "#ffd54f" }, { t: SECRET_WORD.split("").map((ch, i) => letters[i] && letters[i] !== "_" ? ch : "_").join("  "), bold: true, size: 96, gap: 20 }, { t: "nell'ordine delle stanze sulla mappa", size: 34, gap: 16 }];
+    const board = c.place(P.chalkboard(2.2, 1.2, P.boardTex("archivio", lines, { chalk: true })), W / 2 - 0.05, -1.4, -PI / 2, { y: 1.55, solid: false });
+    c.interact(board, { label: "Leggi la lavagna", point: new THREE.Vector3(W / 2 - 1.1, 0, -1.4), range: 2, use: () => c.doc("Le lettere delle stanze", `<p>Ogni stanza completata ti ha regalato una lettera:</p><p style="font-size:30px;letter-spacing:10px;text-align:center"><b>${SECRET_WORD.split("").map((ch) => ch).join(" ")}</b></p><p class="muted">Nell'ordine delle stanze sulla mappa formano il nome di una città che conosci bene…</p>`) });
+    // scrigno dorato
+    const chest = new THREE.Group();
+    B(chest, 0, 0.22, 0, 0.8, 0.44, 0.5, mat(0x5d2e0c, { rough: 0.6 })); B(chest, 0, 0.5, 0, 0.82, 0.14, 0.52, mat(0x6d3a12, { rough: 0.6 }));
+    B(chest, 0, 0.3, 0.26, 0.82, 0.05, 0.02, gold); B(chest, -0.3, 0.3, 0, 0.05, 0.62, 0.53, gold); B(chest, 0.3, 0.3, 0, 0.05, 0.62, 0.53, gold); B(chest, 0, 0.4, 0.27, 0.12, 0.14, 0.03, gold);
+    c.place(chest, 0, -2.6, 0);
+    const glow = new THREE.PointLight(0xffc94d, 0, 3); glow.position.set(0, 1, -2.4); c.scene.add(glow);
+    c.interact(chest, { label: "Scrigno dorato", point: new THREE.Vector3(0, 0, -1.7), range: 1.8, when: () => !c.isDone("parola"),
+      use: async () => { if (await c.puzzle({ type: "code", kind: "Scrigno", title: "La parola segreta", body: "<p>Otto lettere, una per stanza.</p>", answer: SECRET_WORD, keys: ["O", "R", "I", "S", "T", "A", "N", "E", "C", "L", "⌫", "OK"] })) { glow.intensity = 3; c.done("parola"); c.prof("Lo scrigno si è aperto! Ma prima del diploma… un'ultima prova: rispondi alle mie domande al computer."); } } });
+    // computer del quiz
+    const desk = c.place(P.teacherDesk(), 1.4, 1.9, PI);
+    const mon = c.place(P.monitor(), 1.4, 1.9, PI, { y: 0.77, solid: false });
+    c.interact(mon || desk, { label: "Computer dell'archivio", point: new THREE.Vector3(1.4, 0, 1.1), range: 1.8, when: () => c.isDone("parola") && !c.isDone("quiz"),
+      use: async () => { if (await c.puzzle({ type: "quiz", kind: "Quiz finale", title: "Il quiz del fenicottero", questions: [
+        { q: "Qual è l'animale del logo dell'Othoca?", options: ["Il fenicottero rosa", "L'aquila", "Il cavallo"], correct: 0 },
+        { q: "Chi fondò l'antica città di Othoca?", options: ["I Romani", "I Fenici", "I Vichinghi"], correct: 1 },
+        { q: "Come si chiama il museo degli animali delle zone umide della scuola?", options: ["Museo Egizio", "ZooMate", "Acquario Othoca"], correct: 1 },
+      ] })) { c.done("quiz"); c.prof("Perfetto! Il Diploma d'onore è tuo. Ora puoi uscire dall'archivio da vero campione dell'Othoca!"); } } });
+    // tappeto e lampade calde
+    plane(c.scene, 0, 0.005, 0, 3.4, 2.4, mat(0x7b1f3a, { rough: 0.95 }), 0, -PI / 2);
+    for (const [x, z] of [[-1.5, 0], [1.8, -1.5]]) { const l = new THREE.PointLight(0xffb36b, 1.4, 6); l.position.set(x, 2.6, z); c.scene.add(l); }
+  },
+  talk(c) {
+    if (!c.isDone("parola")) return ["Le otto lettere sono scritte sulla lavagna. Mettile in ordine e apri lo scrigno."];
+    if (!c.isDone("quiz")) return ["Ultima prova: le domande sono sul computer, lì sulla scrivania."];
+    return ["Sei una leggenda dell'Othoca! La porta è aperta."];
+  },
+  curiosity: "Hai esplorato tutti i laboratori dell'Othoca: chimica, officina, pneumatica, ZooMate, informatica, aula, palestra e teatro. Il prossimo passo? Iscriverti e viverli davvero!",
+};

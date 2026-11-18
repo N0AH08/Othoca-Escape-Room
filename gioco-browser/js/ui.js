@@ -96,20 +96,20 @@ export function puzzle(def) {
     const foot = `<div class="row"><button class="btn ghost" data-x>Chiudi</button></div>`;
     let p;
     const done = (ok) => { if (ok) { sfx.ok(); setTimeout(() => closeModal(true), 700); } };
-    const setFb = (t, good) => { const f = p.querySelector("[data-fb]"); f.textContent = t; f.className = "feedback " + (good ? "good" : "bad"); };
-    const open = (inner, wide = false) => { p = modal(head + inner + fb + foot, { wide, onClose: (r) => resolve(!!r) }); p.querySelector("[data-x]").onclick = () => closeModal(false); return p; };
+    const setFb = (t, good) => { const f = p.querySelector("[data-fb]"); f.textContent = t; f.className = "feedback " + (good ? "good" : "bad"); p.classList.remove("pz-bad", "pz-good"); void p.offsetWidth; p.classList.add(good ? "pz-good" : "pz-bad"); };
+    const open = (inner, wide = false) => { p = modal(head + inner + fb + foot, { wide, onClose: (r) => resolve(!!r) }); p.classList.add("pz", "pz-" + def.type); p.querySelector("[data-x]").onclick = () => closeModal(false); return p; };
 
     if (def.type === "code") {
       const keys = def.keys || ["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "OK"];
-      open(`<div class="code-display" data-d></div><div class="keypad">${keys.map((k) => `<button class="btn" data-k="${k}">${k}</button>`).join("")}</div>`);
+      open(`<div class="lock"><div class="shackle"></div><div class="lock-body"><div class="code-display" data-d></div></div></div><div class="keypad">${keys.map((k) => `<button class="btn" data-k="${k}">${k}</button>`).join("")}</div>`);
       let val = ""; const d = p.querySelector("[data-d]");
-      const render = () => (d.textContent = val.padEnd(def.answer.length, "·"));
+      const render = () => (d.innerHTML = def.answer.split("").map((_, i) => `<span class="dial ${i < val.length ? "set" : ""}">${i < val.length ? esc(val[i]) : "•"}</span>`).join(""));
       render();
       const press = (k) => {
         sfx.click();
         if (k === "⌫") val = val.slice(0, -1);
         else if (k === "OK") {
-          if (val.toUpperCase() === def.answer.toUpperCase()) { setFb(def.okText || "Esatto! Si sblocca.", true); sfx.lock(); done(true); }
+          if (val.toUpperCase() === def.answer.toUpperCase()) { setFb(def.okText || "Esatto! Si sblocca.", true); p.querySelector(".lock")?.classList.add("open"); sfx.lock(); done(true); }
           else { setFb(def.badText || "Codice sbagliato, riprova.", false); sfx.bad(); val = ""; }
         } else if (val.length < def.answer.length) val += k;
         render();

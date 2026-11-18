@@ -1,6 +1,7 @@
 // Flusso del gioco: menu → ingresso 360° → mappa → escape room → vittoria → mappa.
 import { THREE, heightAt, renderer, camera, world, gfx, setQuality, preloadImages, newScene, buildShell, door, place, addCollider, addFloor, confetti, camFocus, makeHuman, nameTag, spawnPlayer, updatePlayer, player, input, look, addInteractable, findInteractable, highlight, removeInteractable, beacon, render } from "./world.js";
-import { ROOMS } from "./rooms.js";
+import { ROOMS, SECRET, SECRET_WORD } from "./rooms.js";
+const ALL_ROOMS = [...ROOMS, SECRET];
 import * as P from "./props.js";
 import { DECOR } from "./decor.js";
 import { loadCharacterModel, hasModel, makeSkinned, loadTeacherModel, hasTeacherModel, makeTeacher, makeExplorer, makeBoy } from "./skinned.js";
@@ -30,7 +31,9 @@ function show(name) { for (const s of screens) $(s).hidden = s !== name; $("hud"
 
 // ---------- stelle, gradi e scintille ----------
 const starsFor = (t, hints) => (hints === 0 && t < 240 ? 3 : hints <= 2 && t < 480 ? 2 : 1);
-const totalStars = () => Object.values(progress.rooms).reduce((a, r) => a + (r.stars || 1), 0);
+const totalStars = () => ROOMS.reduce((a, r) => a + (progress.rooms[r.id] ? progress.rooms[r.id].stars || 1 : 0), 0);
+const roomsDone = () => ROOMS.filter((r) => progress.rooms[r.id]).length;
+const lettersStr = () => ROOMS.map((r, i) => (progress.rooms[r.id] ? SECRET_WORD[i] : "_")).join("");
 const RANKS = [[0, "Matricola curiosa"], [6, "Apprendista di laboratorio"], [12, "Tecnico in erba"], [18, "Esperto Othoca"], [24, "Leggenda dell'Othoca"]];
 const rankOf = (n) => RANKS.filter(([k]) => n >= k).pop()[1];
 function refreshMenuStars() { const el = $("menuStars"); if (el) el.innerHTML = `<b>${totalStars()}</b> / ${ROOMS.length * 3} ⭐`; const w = $("menuWho"); if (w) { w.hidden = !progress.name; w.innerHTML = `Ciao <b>${esc(progress.name || "")}</b>! · ${esc(rankOf(totalStars()))} · <a href="#" data-act="look">cambia look</a> · <a href="#" data-act="player">non sei tu?</a>`; } }
@@ -49,6 +52,7 @@ const TROPHIES = [
   { id: "half", icon: "🗺️", t: "Mezza scuola", d: "Completa 4 stanze", ok: (r) => r.rooms >= 4 },
   { id: "all", icon: "🏫", t: "Tutta l'Othoca", d: "Completa tutte le 8 stanze", ok: (r) => r.rooms >= 8 },
   { id: "stars", icon: "👑", t: "Leggenda", d: "Raccogli tutte le 24 stelle", ok: (r) => r.total >= 24 },
+  { id: "secret", icon: "🗝️", t: "Il segreto dell'Othoca", d: "Apri lo scrigno dell'Archivio segreto", ok: (r) => r.secret },
 ];
 if (!progress.trophies) progress.trophies = [];
 function checkTrophies(run) {
@@ -84,6 +88,28 @@ function askName(then) {
   const go = () => { const v = inp.value.trim().replace(/\s+/g, " ").slice(0, 14); if (!v) { inp.classList.add("shake"); setTimeout(() => inp.classList.remove("shake"), 400); return; } progress.name = v; progress.look = l; save(SAVE_KEY, progress); closeModal(); refreshMenuStars(); then && then(); };
   p.querySelector("[data-ok]").onclick = go; inp.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") go(); });
 }
+// ---------- come si gioca: 3 schede illustrate ----------
+function showHowTo(then) {
+  const T = isTouch;
+  const cards = [
+    { ico: "🕹️", t: "Muoviti", d: T ? "Usa il <b>joystick</b> in basso a sinistra per camminare nella stanza." : "<kbd>W</kbd> avanti · <kbd>S</kbd> indietro · <kbd>A</kbd> <kbd>D</kbd> per girarti. Tieni <kbd>Shift</kbd> per correre.", art: `<div class="ht-keys">${T ? `<div class="ht-stick"><i></i></div>` : `<span></span><kbd>W</kbd><span></span><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>`}</div>` },
+    { ico: "💬", t: "Parla e usa", d: T ? "Avvicinati al prof o a un oggetto e tocca il pulsante <b>E</b>." : "Avvicinati al prof o a un oggetto e premi <kbd>E</kbd>. Il <b>rombo rosa</b> ti indica cosa usare.", art: `<div class="ht-diamond">◆</div>` },
+    { ico: "🔓", t: "Risolvi ed esci", d: "Completa le 2 sfide del prof e raggiungi la porta <b>USCITA</b>. Meno tempo e meno aiuti 💡 = più stelle ⭐", art: `<div class="ht-stars"><i>★</i><i>★</i><i>★</i></div>` },
+  ];
+  let i = 0;
+  const p = modal(`<div class="eyebrow">Come si gioca</div><div class="howto" data-h></div><div class="ht-dots" data-d></div>
+    <div class="row"><button class="btn ghost" data-prev>←</button><button class="btn primary" data-next>Avanti →</button></div>`, { onClose: () => then && then() });
+  const draw = () => {
+    const c = cards[i];
+    p.querySelector("[data-h]").innerHTML = `<div class="ht-card" style="animation:htIn .35s ease"><div class="ht-art">${c.art}</div><div class="ht-n">${i + 1}</div><h2>${c.ico} ${c.t}</h2><p>${c.d}</p></div>`;
+    p.querySelector("[data-d]").innerHTML = cards.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("");
+    p.querySelector("[data-prev]").style.visibility = i ? "visible" : "hidden";
+    p.querySelector("[data-next]").textContent = i === cards.length - 1 ? "Ho capito, si parte! 🚀" : "Avanti →";
+  };
+  p.querySelector("[data-prev]").onclick = () => { sfx.click(); i = Math.max(0, i - 1); draw(); };
+  p.querySelector("[data-next]").onclick = () => { sfx.click(); if (i < cards.length - 1) { i++; draw(); } else closeModal(); };
+  draw();
+}
 function newPlayer() {
   const p = modal(`<div class="eyebrow">Cambia giocatore</div><h2>Tocca a un altro?</h2><p>I progressi di <b>${esc(progress.name || "questo giocatore")}</b> ripartono da zero. La classifica resta salvata.</p>
     <div class="row"><button class="btn ghost" data-no>Annulla</button><button class="btn primary" data-yes>Nuovo giocatore</button></div>`);
@@ -109,10 +135,11 @@ function showBoard(sel) {
 $("menu").addEventListener("click", (e) => {
   const a = e.target.closest("[data-act]")?.dataset.act; if (!a) return; e.preventDefault();
   unlockAudio(); sfx.click();
-  if (a === "play") { if (progress.name) openHub(); else askName(openHub); }
+  if (a === "play") { if (progress.name) openHub(); else askName(() => showHowTo(openHub)); }
   if (a === "board") showBoard();
   if (a === "player") newPlayer();
   if (a === "look") askName();
+  if (a === "howto") showHowTo();
   if (a === "settings") showSettings(settings, applySettings);
   if (a === "credits") showCredits();
 });
@@ -164,11 +191,20 @@ function openMap() {
     const pr = progress.rooms[r.id];
     return `<div class="card" data-room="${r.id}">
       <div class="img" style="background-image:url(foto/${r.cardPhoto}.jpg)"></div>
+      <div class="peek"><div class="peek-av">${r.teacher.photo ? `<img src="${r.teacher.photo}" alt="">` : `<span>${esc(r.teacher.name.replace(/^(Prof\.(ssa)?|Dott\.(ssa)?) /, "")[0])}</span>`}</div>
+        <div class="peek-tx"><b>${esc(r.teacher.name)}</b> ti aspetta<small>${esc(r.tasks.map((t) => t.title).join(" · "))}</small>
+        <em>${pr ? `🏆 Il tuo record: ${fmtTime(pr.best)}` : "▶ Entra e gioca"}</em></div></div>
       ${pr ? `<span class="stars-won">${[1, 2, 3].map((k) => `<span class="${k <= (pr.stars || 1) ? "star-on" : "star-off"}">★</span>`).join("")}</span>` : ""}
       <span class="badge ${pr ? "done" : ""}">${pr ? "✓ Completata · " + fmtTime(pr.best) : "Da fare"}</span>
       <div class="body"><h3>${esc(r.name)}</h3><div class="ind">${esc(r.indirizzo)}</div>
       <div class="meta"><span>Difficoltà <span class="stars">${"★".repeat(r.difficulty)}${"☆".repeat(3 - r.difficulty)}</span></span><span>${r.tasks.length} sfide</span></div></div></div>`;
   }).join("");
+  const open = roomsDone() === ROOMS.length, sp = progress.rooms[SECRET.id];
+  $("roomCards").insertAdjacentHTML("beforeend", `<div class="card secret ${open ? "open" : "locked"}" ${open ? `data-room="${SECRET.id}"` : ""}>
+    <div class="img secret-img"><span>${open ? "🗝️" : "🔒"}</span></div>
+    ${sp ? `<span class="badge done">✓ Svelato · ${fmtTime(sp.best)}</span>` : `<span class="badge">${open ? "Aperto!" : "Bloccato"}</span>`}
+    <div class="body"><h3>${esc(SECRET.name)}</h3><div class="ind">${open ? "Stanza segreta · ultima sfida" : "Completa tutte le stanze per entrare"}</div>
+    <div class="letters">${lettersStr().split("").map((ch) => `<i class="${ch === "_" ? "" : "got"}">${ch === "_" ? "?" : ch}</i>`).join("")}</div></div></div>`);
   $("roomCards").querySelectorAll("[data-room]").forEach((el) => (el.onclick = () => { sfx.click(); startRoom(el.dataset.room); }));
 }
 let musicOn = false;
@@ -177,7 +213,7 @@ $("mapBack").onclick = () => { sfx.click(); openHub(); };
 // ---------- stanza ----------
 let room = null, ctx = null, exitDoor = null, teacher = null, guide = null, timer = 0, timing = false, introDone = false;
 function startRoom(id) {
-  const def = ROOMS.find((r) => r.id === id);
+  const def = ALL_ROOMS.find((r) => r.id === id);
   state = "room"; show("room"); $("loading").hidden = false; $("loadText").textContent = "Entro in: " + def.name; $("loadBar").style.width = "40%";
   // precarica le texture prese dalle foto 360° della stanza, poi costruisce
   preloadImages(def.preload || []).then(() => setTimeout(() => buildRoom(def), 30));
@@ -187,7 +223,7 @@ function buildRoom(def) {
   newScene({ bg: 0x15101a });
   const [W, D] = def.size;
   const shell = def.shell(); buildShell(Object.assign({ size: def.size }, shell));
-  const st = { done: {}, inv: [], hints: {}, hintsUsed: 0 };
+  const st = { done: {}, inv: [], hints: {}, hintsUsed: 0, letters: lettersStr() };
   // contesto passato alle stanze
   ctx = {
     W, D, H: def.size[2], scene: world.scene, state: st, THREE,
@@ -241,7 +277,7 @@ function buildRoom(def) {
   $("loadBar").style.width = "100%";
   renderer.compile(world.scene, camera);
   setTimeout(() => { $("loading").hidden = true; }, 150);
-  stopMusic(); music(ROOMS.indexOf(def)); ambience(def.id);
+  stopMusic(); music(def.secret ? 7 : ROOMS.indexOf(def)); ambience(def.id);
   // la porta si chiude dietro al giocatore, poi il prof si presenta
   setTimeout(() => { sfx.door(); showRoomTitle(def); }, 300);
   setTimeout(() => {
@@ -269,7 +305,7 @@ function reachableAll(targets, spawn) {
 }
 function addExtras(def, exitPoint) {
   extras = [];
-  if (!hasTeacherModel() || !world.bounds) return;
+  if (!hasTeacherModel() || !world.bounds || def.secret) return;
   const v = new THREE.Vector3();
   const targets = world.interactables.filter((it) => !it.removed).map((it) => { const p = it.point || it.obj.getWorldPosition(v); return [p.x, p.z, Math.min(it.range, 1.8) - 0.1]; });
   targets.push([exitPoint.x, exitPoint.z, 1.2]);
@@ -336,11 +372,12 @@ function win() {
   const me = { name: progress.name || "Anonimo", room: room.id, time: Math.round(t), stars, hints: ctx.state.hintsUsed, at: Date.now() };
   board.runs.push(me); board.runs = board.runs.slice(-600); save(BOARD_KEY, board);
   const pos = rankRuns(room.id).indexOf(me) + 1;
-  checkTrophies({ rooms: Object.keys(progress.rooms).length, hints: ctx.state.hintsUsed, time: t, stars, total: totalStars() });
+  checkTrophies({ secret: room.id === SECRET.id, rooms: roomsDone(), hints: ctx.state.hintsUsed, time: t, stars, total: totalStars() });
   const p = modal(`<div class="eyebrow">${esc(room.name)}</div><h2 style="text-align:center">🎉 Sei uscito!</h2>
     <div class="win-stars">${[1, 2, 3].map((k) => `<i class="${k <= stars ? "on" : ""}" style="animation-delay:${0.25 + k * 0.25}s">★</i>`).join("")}</div>
     <div class="win-xp">+${xp} XP</div>${pos ? `<div class="win-pos">${pos === 1 ? "🥇 Primo posto in classifica!" : pos <= 3 ? `${["", "", "🥈", "🥉"][pos]} ${pos}° in classifica!` : `${pos}° in classifica`}</div>` : ""}<div class="win-rank">${esc(rankOf(totalStars()))}</div>
     <div class="win-stats"><div><b>${fmtTime(t)}</b>tempo</div><div><b>${ctx.state.hintsUsed}</b>aiuti usati</div><div><b>${record ? "🏆" : fmtTime(prev.best)}</b>${record ? "nuovo record!" : "record"}</div></div>
+    ${room.secret ? `<div class="diploma"><div class="eyebrow">Diploma d'onore</div><b>${esc(progress.name || "Campione")}</b><span>ha svelato il segreto dell'Othoca</span></div>` : `<div class="win-letter">🔑 Lettera segreta: <b>${SECRET_WORD[ROOMS.indexOf(room)]}</b> <small>${roomsDone()} / ${ROOMS.length} ${roomsDone() === ROOMS.length ? "· l'Archivio segreto è aperto!" : ""}</small></div>`}
     <div class="curio"><div class="eyebrow">Lo sapevi? · ${esc(room.indirizzo)}</div><p style="margin:6px 0 0">${esc(room.curiosity)}</p></div>
     <div class="row"><button class="btn ghost" data-board>🏆 Classifica</button><button class="btn" data-again>↺ Rigioca</button><button class="btn primary" data-map>Scegli un'altra stanza →</button></div>`, { closable: false });
   p.querySelector("[data-map]").onclick = () => { closeModal(); leaveRoom(); openMap(); };
@@ -351,6 +388,7 @@ function leaveRoom() { stopAmbience(); camFocus.target = null; camFocus.t = 0; r
 
 // ---------- segnalini delle sfide: rombo rosa sopra le cose da usare per l'obiettivo corrente ----------
 const TASK_TARGETS = {
+  segreta: { parola: ["lavagna", "Scrigno"], quiz: ["Computer"] },
   chimica: { sicurezza: (c) => c.has("camice") ? ["Parla con"] : ["armadio delle protezioni"], ph: ["portaprovette", "cartellone del pH", "Lucchetto"] },
   officina: { disegno: ["disegno tecnico", "CNC"], tornio: ["cartello di sicurezza", "Tornio n.1"] },
   pneumatica: { schema: ["schema pneumatico", "Collega i tubi"], ciclo: ["START"] },
@@ -516,13 +554,14 @@ function loop() {
 }
 
 // ---------- avvio ----------
+const T0 = performance.now();
 (async function boot() {
   $("loadBar").style.width = "30%";
   try { await document.fonts.ready; } catch (e) { /* font non critici */ }
   $("loadBar").style.width = "70%";
   await Promise.all([new Promise((r) => { const img = new Image(); img.onload = img.onerror = r; img.src = "foto/entrance_01.jpg"; }), loadCharacterModel(), loadTeacherModel()]);
   $("loadBar").style.width = "100%";
-  setTimeout(() => { state = "menu"; show("menu"); refreshMenuStars(); }, 200);
+  const skipIntro = /stanza=/.test(location.hash); setTimeout(() => { if (state === "loading") { state = "menu"; show("menu"); refreshMenuStars(); } }, skipIntro ? 200 : Math.max(200, 2400 - (performance.now() - T0)));
   loop();
   // scorciatoia per i test: index.html#stanza=chimica
   const m = location.hash.match(/stanza=(\w+)/); if (m && ROOMS.find((r) => r.id === m[1])) setTimeout(() => startRoom(m[1]), 300);
